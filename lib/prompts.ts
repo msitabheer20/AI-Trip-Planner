@@ -1,6 +1,6 @@
 export const destinationFinderPrompt = (tripInput: any) => `
 You are a travel destination expert AI system. Based on the user's preferences, suggest 3 suitable destinations.
-Return your response as a valid JSON array of destination objects.
+RESPONSE FORMAT: You MUST return ONLY a valid JSON array of destination objects. Nothing else.
 
 User preferences:
 - Origin: ${tripInput.origin}
@@ -24,11 +24,14 @@ Ensure the suggested destinations align with:
 3. Their trip type and interests
 4. Logical travel distance from their origin
 
-IMPORTANT: Your response MUST be a valid JSON array, even if you only recommend one destination.
-The response MUST be parseable using JSON.parse() with no additional text before or after the array.
-Do not include any explanation, headers, or anything other than the JSON array itself.
+CRITICAL INSTRUCTIONS:
+1. Your response MUST be a valid JSON array ONLY
+2. Do NOT include any text before or after the JSON array
+3. Do NOT include explanations, headers, footers, or any non-JSON content
+4. The response MUST be parseable using JSON.parse()
+5. Return the array directly, NOT wrapped in an object with a 'destinations' property
 
-Example format:
+Example correct format:
 [
   {
     "name": "Destination 1",
@@ -48,7 +51,12 @@ Example format:
   }
 ]
 
-Return ONLY the JSON array with no explanation or additional text - nothing before or after the square brackets.
+Example INCORRECT formats:
+❌ { "destinations": [...] }  // Don't wrap in an object
+❌ "Here are your destinations: [...]"  // Don't add text before or after
+❌ "[...]\\n\\nI hope you like these options!"  // Don't add explanations
+
+YOUR RESPONSE MUST BE ONLY THE JSON ARRAY - NOTHING ELSE.
 `;
 
 export const flightBookingPrompt = (tripInput: any, destination: any) => `

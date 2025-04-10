@@ -16,103 +16,135 @@ export class AiAgentService {
   
   // Find the best destination recommendations based on trip input
   async findDestinations(tripInput: TripInput): Promise<Destination[]> {
-
-    // console.log("[[tripInput is here]] :", tripInput);
     try {
+      console.log('Finding destinations...');
       const prompt = destinationFinderPrompt(tripInput);
       
       const response = await openai.chat.completions.create({
         model: MODEL,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
-        response_format: { type: 'json_object' },
       });
       
-      const content = response.choices[0].message.content;
-      if (!content) throw new Error('No content returned from OpenAI');
+      const content = response.choices[0]?.message?.content?.trim() || '';
+      console.log('Raw AI response:', content);
       
       try {
-        // Parse the JSON response
-        const parsedResponse = JSON.parse(content);
+        // First attempt: Direct parsing
+        const parsedData = JSON.parse(content);
         
-        // Handle different response formats
-        if (Array.isArray(parsedResponse)) {
-          // Direct array of destinations
-          return parsedResponse;
-        } else if (parsedResponse.destinations && Array.isArray(parsedResponse.destinations)) {
-          // Object with destinations array property
-          return parsedResponse.destinations;
-        } else if (parsedResponse.name && parsedResponse.country) {
-          // Single destination object
-          return [parsedResponse];
-        } else {
-          // Check if there's a nested data structure with destinations
-          const potentialArrays = Object.values(parsedResponse).filter(Array.isArray);
-          if (potentialArrays.length > 0) {
-            // Use the first array found that looks like destinations
-            const destinationArray = potentialArrays.find((arr: any[]) => 
-              arr.length > 0 && arr[0].name && arr[0].country
-            );
-            if (destinationArray) return destinationArray;
+        // Case 1: Response is a direct array of destinations
+        if (Array.isArray(parsedData)) {
+          if (parsedData.length > 0 && this.validateDestinationObject(parsedData[0])) {
+            console.log('Parsed destinations directly from array:', parsedData.length);
+            return parsedData as Destination[];
           }
-          
-          // Look for any objects with destination-like properties
-          const allValues = this.findNestedObjects(parsedResponse);
-          const destinationObjects = allValues.filter(
-            (obj: any) => obj && typeof obj === 'object' && obj.name && obj.country
-          );
-          
-          if (destinationObjects.length > 0) {
-            return destinationObjects;
-          }
-          
-          // If we get here, the response is not in the expected format
-          console.error('Unexpected response format from OpenAI:', parsedResponse);
-          throw new Error('Invalid destination data format');
         }
+        
+        // Case 2: Response is an object with a destinations array property
+        if (parsedData.destinations && Array.isArray(parsedData.destinations)) {
+          if (parsedData.destinations.length > 0 && this.validateDestinationObject(parsedData.destinations[0])) {
+            console.log('Extracted destinations from object property:', parsedData.destinations.length);
+            return parsedData.destinations as Destination[];
+          }
+        }
+        
+        // Case 3: Response is a single destination object
+        if (this.validateDestinationObject(parsedData)) {
+          console.log('Found single destination object');
+          return [parsedData] as Destination[];
+        }
+        
+        // Case 4: Search for nested arrays or objects that might contain destinations
+        const possibleDestinations = this.findNestedDestinations(parsedData);
+        if (possibleDestinations.length > 0) {
+          console.log('Found destinations in nested structure:', possibleDestinations.length);
+          return possibleDestinations as Destination[];
+        }
+        
+        console.error('Unable to find valid destinations in the parsed data');
+        return [];
       } catch (parseError) {
-        console.error('JSON parsing error:', parseError);
-        console.error('Raw content:', content);
+        console.error('JSON parse error:', parseError);
         
-        // Last resort: try to extract JSON from the text
-        try {
-          const jsonMatch = content.match(/\[(.*?)\]/);
-          if (jsonMatch) {
+        // Fallback: Try to extract JSON from text if initial parsing failed
+        const jsonMatch = content.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+        if (jsonMatch && jsonMatch[0]) {
+          try {
             const extractedJson = JSON.parse(jsonMatch[0]);
-            if (Array.isArray(extractedJson) && extractedJson.length > 0) {
-              return extractedJson;
+            
+            if (Array.isArray(extractedJson)) {
+              if (extractedJson.length > 0 && this.validateDestinationObject(extractedJson[0])) {
+                console.log('Extracted destinations from text using regex:', extractedJson.length);
+                return extractedJson as Destination[];
+              }
+            } else if (extractedJson.destinations && Array.isArray(extractedJson.destinations)) {
+              console.log('Extracted destinations property from text using regex:', extractedJson.destinations.length);
+              return extractedJson.destinations as Destination[];
+            } else if (this.validateDestinationObject(extractedJson)) {
+              console.log('Extracted single destination from text using regex');
+              return [extractedJson] as Destination[];
             }
+          } catch (fallbackError) {
+            console.error('Fallback JSON extraction failed:', fallbackError);
           }
-        } catch (e) {
-          // Ignore and fall through to the error
         }
         
-        throw new Error('Failed to parse destination data');
+        console.error('All parsing attempts failed');
+        return [];
       }
     } catch (error) {
-      console.error('Error finding destinations:', error);
-      throw error;
+      console.error('Error in findDestinations:', error);
+      return [];
     }
   }
   
-  // Helper method to find nested objects in complex JSON
-  private findNestedObjects(obj: any): any[] {
-    let results: any[] = [];
+  private validateDestinationObject(obj: any): boolean {
+    return obj && 
+           typeof obj === 'object' &&
+           typeof obj.name === 'string' && 
+           typeof obj.country === 'string' &&
+           typeof obj.description === 'string';
+  }
+  
+  private findNestedDestinations(data: any): Destination[] {
+    const results: Destination[] = [];
     
-    if (obj && typeof obj === 'object') {
-      // Add the object itself if it's not an array
-      if (!Array.isArray(obj)) {
-        results.push(obj);
+    // Helper function to recursively search for destination-like objects
+    const searchNestedObjects = (obj: any) => {
+      if (!obj || typeof obj !== 'object') return;
+      
+      // Check if current object looks like a destination
+      if (this.validateDestinationObject(obj)) {
+        results.push(obj as Destination);
+        return;
       }
       
-      // Process all properties/elements
-      Object.values(obj).forEach(value => {
-        if (value && typeof value === 'object') {
-          results = results.concat(this.findNestedObjects(value));
+      // Explore array elements
+      if (Array.isArray(obj)) {
+        for (const item of obj) {
+          searchNestedObjects(item);
         }
-      });
-    }
+        return;
+      }
+      
+      // Explore object properties
+      for (const key in obj) {
+        // Special handling for common container properties
+        if (key === 'destinations' || key === 'results' || key === 'options' || key === 'suggestions') {
+          if (Array.isArray(obj[key])) {
+            if (obj[key].length > 0 && this.validateDestinationObject(obj[key][0])) {
+              results.push(...obj[key]);
+              continue;
+            }
+          }
+        }
+        
+        searchNestedObjects(obj[key]);
+      }
+    };
     
+    searchNestedObjects(data);
     return results;
   }
   

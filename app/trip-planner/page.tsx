@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { useTripContext } from '@/lib/trip-context';
+import TripPlanDisplay from '@/components/TripPlanDisplay';
 
 export default function TripPlanner() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function TripPlanner() {
     budget,
     itinerary,
     activities,
+    tripPlan,
     
     setStep,
     updateTripInput,
@@ -57,9 +59,9 @@ export default function TripPlanner() {
           console.log("TRIP PLAN DETAILS:", JSON.stringify(tripPlanResult, null, 2));
           
           // Add a small delay before redirect to ensure state is updated
-          setTimeout(() => {
-            router.push('/trip-results');
-          }, 500);
+          // setTimeout(() => {
+          //   router.push('/trip-results');
+          // }, 500);
         } else {
           console.error("Trip plan creation returned null or undefined");
         }
@@ -350,153 +352,12 @@ export default function TripPlanner() {
           )}
 
           {/* Step 3: Final Plan Summary */}
-          {step === 3 && (
+          {step === 3 && tripPlan && (
             <div>
-              <div className="bg-[#f8f9fa] rounded-xl p-6 mb-8">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-2xl font-bold mb-1">Goa, India</h2>
-                    <p className="text-gray-500 mb-4">7-day trip • May 15 - May 21, 2023</p>
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-[#e6f4ff] text-[#0066cc] hover:bg-[#d9efff]">Beach</Badge>
-                      <Badge className="bg-[#e6f4ff] text-[#0066cc] hover:bg-[#d9efff]">Adventure</Badge>
-                      <Badge className="bg-[#e6f4ff] text-[#0066cc] hover:bg-[#d9efff]">Relaxation</Badge>
-                    </div>
-                  </div>
-                  <Button className="bg-[#34e0a1] hover:bg-[#2bc889] text-black px-4 py-2 rounded-full">
-                    Download PDF
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <Card>
-                  <CardContent className="p-4">
-                    <h3 className="font-bold text-lg mb-2">Cost Breakdown</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Flights</span>
-                        <span className="font-medium">₹28,500</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Hotel (6 nights)</span>
-                        <span className="font-medium">₹36,000</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Activities</span>
-                        <span className="font-medium">₹15,000</span>
-                      </div>
-                      <div className="flex justify-between pt-2 border-t">
-                        <span className="font-bold">Total</span>
-                        <span className="font-bold">₹79,500</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="p-4">
-                    <h3 className="font-bold text-lg mb-2">Flight Details</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Outbound • May 15</p>
-                        <p className="font-medium">Delhi to Goa</p>
-                        <p>IndiGo Airlines • 8:30 AM - 11:05 AM</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Return • May 21</p>
-                        <p className="font-medium">Goa to Delhi</p>
-                        <p>IndiGo Airlines • 7:15 PM - 9:55 PM</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardContent className="p-4">
-                    <h3 className="font-bold text-lg mb-2">Hotel</h3>
-                    <div>
-                      <p className="font-medium">Taj Resort & Spa, Goa</p>
-                      <p className="text-sm mb-2">Beachfront location in Baga</p>
-                      <div className="flex items-center gap-1 mb-2">
-                        <div className="flex text-[#00aa6c]">
-                          {Array(5).fill(0).map((_, i) => (
-                            <Star key={i} size={14} fill="currentColor" />
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-500">(473 reviews)</span>
-                      </div>
-                      <p className="font-medium">₹6,000 per night</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <Card className="mb-8">
-                <CardContent className="p-4">
-                  <h3 className="font-bold text-xl mb-4">Your 7-Day Itinerary</h3>
-                  <div className="space-y-4">
-                    {[
-                      {
-                        day: "Day 1", 
-                        activities: [
-                          "Arrival and check-in at Taj Resort & Spa",
-                          "Evening stroll at Baga Beach",
-                          "Welcome dinner at Britto's Restaurant"
-                        ]
-                      },
-                      {
-                        day: "Day 2", 
-                        activities: [
-                          "Breakfast at hotel",
-                          "Water sports at Calangute Beach",
-                          "Lunch at Souza Lobo",
-                          "Visit to Fort Aguada",
-                          "Dinner at Thalassa"
-                        ]
-                      },
-                      {
-                        day: "Day 3", 
-                        activities: [
-                          "South Goa exploration tour",
-                          "Visit Palolem and Agonda beaches",
-                          "Seafood lunch at Martin's Corner",
-                          "Evening at Colva Beach"
-                        ]
-                      }
-                    ].map((day, index) => (
-                      <div key={index}>
-                        <h4 className="font-bold text-lg text-[#0066cc]">{day.day}</h4>
-                        <ul className="list-disc pl-5 mt-2">
-                          {day.activities.map((activity, actIndex) => (
-                            <li key={actIndex}>{activity}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                    <div className="text-center">
-                      <Button variant="outline" className="mt-2">
-                        View Full Itinerary
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <div className="flex justify-between">
-                <Button 
-                  variant="outline" 
-                  className="rounded-full"
-                  onClick={() => setStep(1)}
-                >
-                  Modify Trip
-                </Button>
-                <Button 
-                  className="bg-[#34e0a1] hover:bg-[#2bc889] text-black px-8 py-2 rounded-full font-medium"
-                >
-                  Confirm Trip
-                </Button>
-              </div>
+              <TripPlanDisplay 
+                tripPlan={tripPlan} 
+                onBack={() => setStep(1)}
+              />
             </div>
           )}
         </div>

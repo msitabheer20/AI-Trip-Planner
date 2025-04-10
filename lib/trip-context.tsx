@@ -328,7 +328,9 @@ export function TripProvider({ children }: { children: ReactNode }) {
       setStep(3);
       
       // Return the trip plan data
+      console.log("HERE IS THE TRIP PLAN: ", data.tripPlan);
       return data.tripPlan;
+    
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to plan trip. Please try again.';
       setError(errorMessage);
