@@ -49,21 +49,20 @@ export default function TripPlanner() {
       // Step 1: Generate complete trip plan in one go
       try {
         console.log("Starting trip plan creation...");
-        // createTripPlan internally handles all the steps:
-        // - finding destinations
-        // - finding flights
-        // - finding hotels
-        // - optimizing budget
-        // - generating itinerary
-        // - recommending activities
-        const tripPlan = await createTripPlan();
-        console.log("Trip plan created successfully, redirecting...");
-        console.log("HERE IS THE TRIP PLAN: ", tripPlan);
+        // createTripPlan internally handles all the steps and returns the created plan
+        const tripPlanResult = await createTripPlan();
+        console.log("Trip plan created successfully");
         
-        // Add a small delay before redirect to ensure state is updated
-        // setTimeout(() => {
-        //   router.push('/trip-results');
-        // }, 100);
+        if (tripPlanResult) {
+          console.log("TRIP PLAN DETAILS:", JSON.stringify(tripPlanResult, null, 2));
+          
+          // Add a small delay before redirect to ensure state is updated
+          setTimeout(() => {
+            router.push('/trip-results');
+          }, 500);
+        } else {
+          console.error("Trip plan creation returned null or undefined");
+        }
       } catch (error) {
         console.error("Error during trip planning:", error);
       }

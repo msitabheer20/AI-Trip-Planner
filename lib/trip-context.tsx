@@ -29,7 +29,7 @@ interface TripContextType {
   optimizeBudget: () => Promise<void>;
   generateItinerary: () => Promise<void>;
   recommendActivities: () => Promise<void>;
-  createTripPlan: () => Promise<void>;
+  createTripPlan: () => Promise<TripPlan | null>;
   
   resetPlanning: () => void;
 }
@@ -326,6 +326,9 @@ export function TripProvider({ children }: { children: ReactNode }) {
       
       // Move to the next step
       setStep(3);
+      
+      // Return the trip plan data
+      return data.tripPlan;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to plan trip. Please try again.';
       setError(errorMessage);
@@ -333,6 +336,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
       
       // Stay on step 1 so user can modify inputs and try again
       setStep(1);
+      return null;
     } finally {
       setLoading(false);
     }
