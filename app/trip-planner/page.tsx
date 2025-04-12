@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect } from 'react';
-import { Search, MapPin, Calendar, User, Star, ChevronDown, Menu, X, Heart, Bell, ArrowLeft } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Star, ArrowLeft, Map, Plane, Hotel, BarChart, Calendar, MapPin, X, Check, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
+import { useRouter } from 'next/navigation';
 import { 
   Select,
   SelectContent,
@@ -19,6 +20,9 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { useTripContext } from '@/lib/trip-context';
 import TripPlanDisplay from '@/components/TripPlanDisplay';
+import Layout from '@/components/layout/Layout';
+
+// Removed the static popularDestinations array since we're using an API
 
 export default function TripPlanner() {
   const router = useRouter();
@@ -27,43 +31,191 @@ export default function TripPlanner() {
     error,
     step,
     tripInput,
-    destinations,
-    selectedDestination,
-    flights,
-    hotels,
-    selectedHotel,
-    budget,
-    itinerary,
-    activities,
     tripPlan,
     
     setStep,
     updateTripInput,
-    
-    findDestinations,
     createTripPlan,
   } = useTripContext();
+
+  // State for origin city suggestions
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const suggestionRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch location suggestions from API
+  const fetchLocationSuggestions = async (query: string) => {
+    if (query.length < 1) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsLoadingSuggestions(true);
+
+    try {
+      // Use Geoapify Places API for location suggestions with more inclusive parameters
+      const response = await fetch(
+        `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&filter=countrycode:in,us,gb,fr,de,es,it,au,ca,jp,sg,ae,cn&bias=countrycode:in&lang=en&limit=10&format=json&apiKey=fa40d7a1398e4eaeb59390e3609bf0a1`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch locations');
+      }
+
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        const locationResults = data.results.map((result: any) => {
+          // Determine the best name to display
+          let locationName = '';
+
+          if (result.city) {
+            locationName = result.city;
+          } else if (result.municipality) {
+            locationName = result.municipality;
+          } else if (result.county) {
+            locationName = result.county;
+          } else if (result.state) {
+            locationName = result.state;
+          } else if (result.name) {
+            locationName = result.name;
+          }
+
+          // Add state if available and different from city
+          if (result.state && result.state !== locationName) {
+            locationName += `, ${result.state}`;
+          }
+
+          // Always add country
+          if (result.country) {
+            locationName += `, ${result.country}`;
+          }
+
+          return {
+            id: result.place_id,
+            name: locationName,
+            details: result
+          };
+        });
+
+        setSuggestions(locationResults);
+        setShowSuggestions(locationResults.length > 0);
+      } else {
+        // If no results from API, try a fallback approach
+        const fallbackCities = [
+          "Goa, India", "Delhi, India", "Mumbai, India", "Bangalore, India",
+          "Chennai, India", "Hyderabad, India", "Kolkata, India", "Jaipur, India",
+          "New York, USA", "London, UK", "Paris, France", "Tokyo, Japan"
+        ];
+
+        const filteredCities = fallbackCities
+          .filter(city => city.toLowerCase().includes(query.toLowerCase()))
+          .slice(0, 8);
+
+        if (filteredCities.length > 0) {
+          setSuggestions(filteredCities.map(city => ({ id: city, name: city })));
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching location suggestions:', error);
+      // Fallback to a simple filter of common cities if API fails
+      const fallbackCities = [
+        "Goa, India", "Delhi, India", "Mumbai, India", "Bangalore, India",
+        "Chennai, India", "Hyderabad, India", "Kolkata, India", "Jaipur, India",
+        "New York, USA", "London, UK", "Paris, France", "Tokyo, Japan"
+      ];
+
+      const filteredCities = fallbackCities
+        .filter(city => city.toLowerCase().includes(query.toLowerCase()))
+        .slice(0, 8);
+
+      setSuggestions(filteredCities.map(city => ({ id: city, name: city })));
+      setShowSuggestions(filteredCities.length > 0);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
+
+  // Debounced location search to prevent too many API calls
+  const handleOriginInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    updateTripInput({ origin: value });
+
+    // Clear any existing timeout
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set a new timeout for 300ms
+    debounceTimerRef.current = setTimeout(() => {
+      fetchLocationSuggestions(value);
+    }, 300);
+  };
+
+  // Handle suggestion selection
+  const handleSelectSuggestion = (suggestion: any) => {
+    updateTripInput({ origin: suggestion.name });
+    setShowSuggestions(false);
+  };
+
+  // Handle click outside of suggestions to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionRef.current &&
+        !suggestionRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      // Clear any existing timeout on unmount
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+
+
 
   const handleNextStep = async () => {
     window.scrollTo(0, 0);
     
     if (step === 1) {
-      // Step 1: Generate complete trip plan in one go
+      // Step 1: Move to trip planning step
       try {
         console.log("Starting trip plan creation...");
+        
+        // First set loading state by moving to step 2
+        // This shows the loading state to the user
+        setStep(2);
+        
+        // Then call the API to create the trip plan
         // createTripPlan internally handles all the steps and returns the created plan
         const tripPlanResult = await createTripPlan();
         console.log("Trip plan created successfully");
         
         if (tripPlanResult) {
           console.log("TRIP PLAN DETAILS:", JSON.stringify(tripPlanResult, null, 2));
-          
-          // Add a small delay before redirect to ensure state is updated
-          // setTimeout(() => {
-          //   router.push('/trip-results');
-          // }, 500);
+          // The createTripPlan function already sets the step to 3
+          // No need to update step here
         } else {
           console.error("Trip plan creation returned null or undefined");
+          // Stay on step 2 to let user retry
         }
       } catch (error) {
         console.error("Error during trip planning:", error);
@@ -80,323 +232,428 @@ export default function TripPlanner() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="container max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2">
-              <div className="bg-gradient-to-r from-[#34e0a1] to-[#00aa6c] p-2.5 rounded-xl shadow-md transform rotate-12 hover:rotate-0 transition-transform duration-300">
-                <MapPin size={24} className="text-white drop-shadow-sm" />
-              </div>
-              <span className="font-bold text-2xl tracking-tight">
-                Trip<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#34e0a1] to-[#00aa6c]">Nest</span>
-              </span>
-            </div>
-          </div>
-          <div className="hidden md:flex items-center gap-4">
-            <button className="text-gray-600 hover:text-gray-900">
-              <Heart size={22} />
-            </button>
-            <button className="text-gray-600 hover:text-gray-900">
-              <Bell size={22} />
-            </button>
-            <Button className="text-black rounded-full font-bold border border-gray-300 hover:bg-[#34e0a1] hover:text-white hover:border-transparent transition-all duration-300">
-              Sign In
-            </Button>
-          </div>
-        </div>
-      </header>
+    <Layout>
+      {/* Background decor */}
+      <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
+        <div className="absolute -top-20 -right-20 w-96 h-96 bg-gradient-to-br from-[#edfcf5] to-[#c5f9e1] rounded-full opacity-50 blur-3xl"></div>
+        <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-gradient-to-tr from-[#edfcf5] to-[#c5f9e1] rounded-full opacity-50 blur-3xl"></div>
+      </div>
 
       {/* Main content */}
-      <main className="flex-grow">
-        <div className="container max-w-5xl mx-auto px-4 py-8">
-          {/* Back button and progress */}
-          <div className="flex items-center justify-between mb-8">
-            <Button 
-              variant="ghost" 
-              className="flex items-center gap-2" 
-              onClick={() => step === 1 ? window.location.href = "/" : handleBack()}
-            >
-              <ArrowLeft size={16} />
-              {step === 1 ? "Back to Home" : "Back"}
-            </Button>
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${step >= 1 ? 'bg-[#34e0a1]' : 'bg-gray-300'}`}></div>
-              <div className={`w-3 h-3 rounded-full ${step >= 2 ? 'bg-[#34e0a1]' : 'bg-gray-300'}`}></div>
-              <div className={`w-3 h-3 rounded-full ${step >= 3 ? 'bg-[#34e0a1]' : 'bg-gray-300'}`}></div>
-            </div>
+      <div className="container max-w-5xl mx-auto px-4 py-8 relative z-10">
+        {/* Back button and progress */}
+        <div className="flex items-center justify-between mb-8">
+          <Button 
+            variant="ghost" 
+            className="flex items-center gap-2 hover:bg-[#edfcf5] transition-all"
+            onClick={() => step === 1 ? window.location.href = "/" : handleBack()}
+          >
+            <ArrowLeft size={16} />
+            {step === 1 ? "Back to Home" : "Back"}
+          </Button>
+          <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-full shadow-sm">
+            <div className={`w-4 h-4 rounded-full ${step >= 1 ? 'bg-[#34e0a1]' : 'bg-gray-200'} transition-all duration-300`}></div>
+            <div className={`w-4 h-4 rounded-full ${step >= 2 ? 'bg-[#34e0a1]' : 'bg-gray-200'} transition-all duration-300`}></div>
+            <div className={`w-4 h-4 rounded-full ${step >= 3 ? 'bg-[#34e0a1]' : 'bg-gray-200'} transition-all duration-300`}></div>
           </div>
+        </div>
 
-          {/* Title */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">AI Trip Planner</h1>
-            <p className="text-gray-500">
-              {step === 1 ? "Tell us about your dream trip" : 
-               step === 2 ? "Our AI is crafting your perfect trip" : 
-               "Your personalized trip plan"}
-            </p>
-          </div>
+        {/* Title */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-[#34e0a1] to-[#2bc889] text-transparent bg-clip-text">AI Trip Planner</h1>
+          <p className="text-gray-600 text-lg">
+            {step === 1 ? "Tell us about your dream trip" : 
+             step === 2 ? "Our AI is crafting your perfect trip" : 
+             "Your personalized trip plan"}
+          </p>
+        </div>
 
-          {/* Step 1: User Input Form */}
-          {step === 1 && (
-            <Card className="p-6">
-              <CardContent className="p-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Origin City</label>
-                    <Input 
-                      placeholder="Where are you traveling from?" 
-                      value={tripInput.origin}
-                      onChange={(e) => updateTripInput({ origin: e.target.value })}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Trip Type</label>
-                    <Select 
-                      defaultValue={tripInput.tripType}
-                      onValueChange={(value) => updateTripInput({ tripType: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select trip type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="adventure">Adventure</SelectItem>
-                        <SelectItem value="relaxation">Relaxation</SelectItem>
-                        <SelectItem value="family">Family</SelectItem>
-                        <SelectItem value="romantic">Romantic</SelectItem>
-                        <SelectItem value="cultural">Cultural</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Start Date</label>
-                    <Input 
-                      type="date"
-                      value={tripInput.startDate}
-                      onChange={(e) => updateTripInput({ startDate: e.target.value })}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-2">End Date</label>
-                    <Input 
-                      type="date"
-                      value={tripInput.endDate}
-                      onChange={(e) => updateTripInput({ endDate: e.target.value })}
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2">Budget (₹)</label>
-                    <div className="flex items-center gap-4">
-                      <span className="text-gray-500">₹10,000</span>
-                      <Slider
-                        defaultValue={[tripInput.budget]}
-                        max={200000}
-                        min={10000}
-                        step={5000}
-                        onValueChange={(value) => updateTripInput({ budget: value[0] })}
-                        className="flex-grow"
-                      />
-                      <span className="text-gray-500">₹200,000</span>
+        {/* Step 1: User Input Form */}
+        {step === 1 && (
+          <Card className="p-8 shadow-xl border-0 bg-white/95 backdrop-blur-sm rounded-2xl transition-all hover:shadow-2xl">
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-[#edfcf5]/50 to-transparent opacity-50 pointer-events-none"></div>
+            <CardContent className="p-0 relative z-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="relative">
+                  <label className="block text-base font-medium mb-3 flex items-center gap-2 text-gray-700">
+                    <div className="p-1.5 bg-[#edfcf5] rounded-full">
+                      <MapPin size={18} className="text-[#34e0a1]" />
                     </div>
-                    <div className="text-center mt-2 font-medium">₹{tripInput.budget.toLocaleString()}</div>
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-2">Interests & Activities</label>
-                    <Textarea 
-                      placeholder="Tell us what you enjoy (e.g., hiking, museums, food tours, beaches, etc.)"
-                      className="h-24"
-                      value={tripInput.interests || ''}
-                      onChange={(e) => updateTripInput({ interests: e.target.value })}
+                    Origin City
+                  </label>
+                  <Input 
+                    ref={inputRef}
+                    placeholder="Where are you traveling from?" 
+                    value={tripInput.origin}
+                    onChange={handleOriginInputChange}
+                    className="border-gray-300 focus:border-[#34e0a1] focus:ring-[#34e0a1] rounded-xl h-12 px-4 text-base shadow-sm"
+                    autoComplete="off"
+                  />
+
+                  {/* Suggestions dropdown */}
+                  {showSuggestions && (
+                    <div
+                      ref={suggestionRef}
+                      className="absolute z-50 w-full mt-1 bg-white rounded-xl shadow-lg border border-gray-200 max-h-72 overflow-auto"
+                    >
+                      <div className="px-4 py-2 text-xs text-gray-500 border-b flex justify-between items-center">
+                        <span>Global Destinations</span>
+                        {isLoadingSuggestions ? (
+                          <div className="flex items-center gap-1">
+                            <Loader2 size={12} className="animate-spin text-[#34e0a1]" />
+                            <span>Loading...</span>
+                          </div>
+                        ) : (
+                          <span>{suggestions.length} results</span>
+                        )}
+                      </div>
+
+                      {isLoadingSuggestions && suggestions.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500">
+                          <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+                          Searching for cities...
+                        </div>
+                      ) : suggestions.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500">
+                          No matching cities found. Try a different search.
+                        </div>
+                      ) : (
+                        suggestions.map((suggestion, index) => (
+                          <div
+                            key={index}
+                            className="px-4 py-3 hover:bg-[#edfcf5] cursor-pointer group transition-colors"
+                            onClick={() => handleSelectSuggestion(suggestion)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <MapPin size={16} className="text-[#34e0a1]" />
+                              <span className="font-medium">{suggestion.name}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block text-base font-medium mb-3 flex items-center gap-2 text-gray-700">
+                    <div className="p-1.5 bg-[#edfcf5] rounded-full">
+                      <Map size={18} className="text-[#34e0a1]" />
+                    </div>
+                    Trip Type
+                  </label>
+                  <Select 
+                    defaultValue={tripInput.tripType}
+                    onValueChange={(value) => updateTripInput({ tripType: value })}
+                  >
+                    <SelectTrigger className="border-gray-300 focus:border-[#34e0a1] focus:ring-[#34e0a1] rounded-xl h-12 px-4 text-base shadow-sm">
+                      <SelectValue placeholder="Select trip type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white rounded-xl border-gray-200 shadow-md">
+                      <SelectItem value="adventure" className="py-3 text-base focus:bg-[#edfcf5]">Adventure</SelectItem>
+                      <SelectItem value="relaxation" className="py-3 text-base focus:bg-[#edfcf5]">Relaxation</SelectItem>
+                      <SelectItem value="family" className="py-3 text-base focus:bg-[#edfcf5]">Family</SelectItem>
+                      <SelectItem value="romantic" className="py-3 text-base focus:bg-[#edfcf5]">Romantic</SelectItem>
+                      <SelectItem value="cultural" className="py-3 text-base focus:bg-[#edfcf5]">Cultural</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="block text-base font-medium mb-3 flex items-center gap-2 text-gray-700">
+                    <div className="p-1.5 bg-[#edfcf5] rounded-full">
+                      <Calendar size={18} className="text-[#34e0a1]" />
+                    </div>
+                    Start Date
+                  </label>
+                  <Input 
+                    type="date"
+                    value={tripInput.startDate}
+                    onChange={(e) => updateTripInput({ startDate: e.target.value })}
+                    className="border-gray-300 focus:border-[#34e0a1] focus:ring-[#34e0a1] rounded-xl h-12 px-4 text-base shadow-sm"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-base font-medium mb-3 flex items-center gap-2 text-gray-700">
+                    <div className="p-1.5 bg-[#edfcf5] rounded-full">
+                      <Calendar size={18} className="text-[#34e0a1]" />
+                    </div>
+                    End Date
+                  </label>
+                  <Input 
+                    type="date"
+                    value={tripInput.endDate}
+                    onChange={(e) => updateTripInput({ endDate: e.target.value })}
+                    className="border-gray-300 focus:border-[#34e0a1] focus:ring-[#34e0a1] rounded-xl h-12 px-4 text-base shadow-sm"
+                  />
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className="block text-base font-medium mb-3 flex items-center gap-2 text-gray-700">
+                    <div className="p-1.5 bg-[#edfcf5] rounded-full">
+                      <BarChart size={18} className="text-[#34e0a1]" />
+                    </div>
+                    Budget (₹)
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <span className="text-gray-500 font-medium">₹10,000</span>
+                    <Slider
+                      defaultValue={[tripInput.budget]}
+                      max={200000}
+                      min={10000}
+                      step={5000}
+                      onValueChange={(value) => updateTripInput({ budget: value[0] })}
+                      className="flex-grow h-4"
                     />
+                    <span className="text-gray-500 font-medium">₹200,000</span>
+                  </div>
+                  <div className="text-center mt-4 font-medium text-lg py-2 bg-[#edfcf5] rounded-xl">
+                    ₹{tripInput.budget.toLocaleString()}
                   </div>
                 </div>
                 
-                <div className="mt-8 flex justify-end">
-                  <Button 
-                    className="bg-[#34e0a1] hover:bg-[#2bc889] text-black px-8 py-2 rounded-full font-medium"
-                    onClick={handleNextStep}
-                    disabled={loading || !tripInput.origin || !tripInput.startDate || !tripInput.endDate}
-                  >
-                    {loading ? 'Planning...' : 'Plan My Trip'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Step 2: Agent Reasoning Viewer */}
-          {step === 2 && (
-            <div>
-              {loading ? (
-                <div className="flex flex-col items-center justify-center py-16">
-                  <div className="w-16 h-16 border-4 border-[#34e0a1] border-t-transparent rounded-full animate-spin mb-4"></div>
-                  <p className="text-lg font-medium">Our AI agents are planning your perfect trip...</p>
-                </div>
-              ) : (
-                <div>
-                  {error && (
-                    <div className="bg-red-50 text-red-700 p-4 mb-4 rounded-lg">
-                      <p className="font-medium">Error: {error}</p>
-                      <p className="text-sm mt-1">Please try again or adjust your trip parameters.</p>
+                <div className="md:col-span-2">
+                  <label className="block text-base font-medium mb-3 flex items-center gap-2 text-gray-700">
+                    <div className="p-1.5 bg-[#edfcf5] rounded-full">
+                      <Star size={18} className="text-[#34e0a1]" />
                     </div>
+                    Interests & Activities
+                  </label>
+                  <Textarea 
+                    placeholder="Tell us what you enjoy (e.g., hiking, museums, food tours, beaches, etc.)"
+                    className="h-32 border-gray-300 focus:border-[#34e0a1] focus:ring-[#34e0a1] rounded-xl px-4 py-3 text-base shadow-sm"
+                    value={tripInput.interests || ''}
+                    onChange={(e) => updateTripInput({ interests: e.target.value })}
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-10 flex justify-center">
+                <Button 
+                  className="bg-gradient-to-r from-[#34e0a1] to-[#2bc889] hover:opacity-90 text-black px-10 py-7 rounded-xl font-medium flex items-center gap-3 shadow-lg transition-all hover:shadow-xl transform hover:-translate-y-1 text-lg"
+                  onClick={handleNextStep}
+                  disabled={loading || !tripInput.origin || !tripInput.startDate || !tripInput.endDate}
+                >
+                  {loading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                      Planning...
+                    </div>
+                  ) : (
+                    <>
+                      <img 
+                        src="https://static.thenounproject.com/png/6404439-200.png" 
+                        alt="AI Icon" 
+                        className="w-6 h-6"
+                      />
+                      Plan My Trip
+                    </>
                   )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 2: Agent Reasoning Viewer */}
+        {step === 2 && (
+          <div>
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-20 h-20 border-4 border-[#34e0a1] border-t-transparent rounded-full animate-spin mb-6"></div>
+                <p className="text-xl font-medium mb-2">Our AI agents are planning your perfect trip...</p>
+                <p className="text-gray-500 max-w-md text-center">Finding the best destinations, flights, and experiences tailored just for you.</p>
+              </div>
+            ) : (
+              <div>
+                {error && (
+                  <div className="bg-red-50 text-red-700 p-6 mb-6 rounded-xl shadow-sm border border-red-100">
+                    <p className="font-medium">Error: {error}</p>
+                    <p className="text-sm mt-1">Please try again or adjust your trip parameters.</p>
+                  </div>
+                )}
+                
+                <Tabs defaultValue="all" className="mb-8">
+                  <TabsList className="mb-6 p-1 bg-gray-100 rounded-full overflow-hidden w-full flex">
+                    <TabsTrigger value="all" className="flex-1 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">All Agents</TabsTrigger>
+                    <TabsTrigger value="destination" className="flex-1 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">Destination Finder</TabsTrigger>
+                    <TabsTrigger value="flights" className="flex-1 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">Flight Booking</TabsTrigger>
+                    <TabsTrigger value="hotels" className="flex-1 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">Hotel Booking</TabsTrigger>
+                    <TabsTrigger value="budget" className="flex-1 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">Budget Optimizer</TabsTrigger>
+                    <TabsTrigger value="itinerary" className="flex-1 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">Itinerary Generator</TabsTrigger>
+                  </TabsList>
                   
-                  <Tabs defaultValue="all" className="mb-8">
-                    <TabsList className="mb-4">
-                      <TabsTrigger value="all">All Agents</TabsTrigger>
-                      <TabsTrigger value="destination">Destination Finder</TabsTrigger>
-                      <TabsTrigger value="flights">Flight Booking</TabsTrigger>
-                      <TabsTrigger value="hotels">Hotel Booking</TabsTrigger>
-                      <TabsTrigger value="budget">Budget Optimizer</TabsTrigger>
-                      <TabsTrigger value="itinerary">Itinerary Generator</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="all">
-                      <div className="space-y-6">
-                        <AgentCard 
-                          title="Destination Finder Agent" 
-                          description="Finding top 3 destinations based on your preferences..."
-                          result={<DestinationResult detailed={false} />}
-                          detailed={false}
-                        />
-                        <AgentCard 
-                          title="Flight Booking Agent" 
-                          description="Searching for the best flight options..."
-                          result={<FlightResult detailed={false} />}
-                          detailed={false}
-                        />
-                        <AgentCard 
-                          title="Hotel Booking Agent" 
-                          description="Finding accommodations that match your preferences..."
-                          result={<HotelResult detailed={false} />}
-                          detailed={false}
-                        />
-                        <AgentCard 
-                          title="Budget Optimizer Agent" 
-                          description="Optimizing your trip to stay within budget..."
-                          result={<BudgetResult detailed={false} />}
-                          detailed={false}
-                        />
-                        <AgentCard 
-                          title="Itinerary Generator Agent" 
-                          description="Creating your perfect day-by-day plan..."
-                          result={<ItineraryPreview detailed={false} />}
-                          detailed={false}
-                        />
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="destination">
+                  <TabsContent value="all">
+                    <div className="space-y-6">
                       <AgentCard 
                         title="Destination Finder Agent" 
+                        icon={<Map size={18} />}
                         description="Finding top 3 destinations based on your preferences..."
-                        result={<DestinationResult detailed={true} />}
-                        detailed={true}
+                        result={<DestinationResult detailed={false} />}
+                        detailed={false}
                       />
-                    </TabsContent>
-                    
-                    <TabsContent value="flights">
                       <AgentCard 
                         title="Flight Booking Agent" 
+                        icon={<Plane size={18} />}
                         description="Searching for the best flight options..."
-                        result={<FlightResult detailed={true} />}
-                        detailed={true}
+                        result={<FlightResult detailed={false} />}
+                        detailed={false}
                       />
-                    </TabsContent>
-                    
-                    <TabsContent value="hotels">
                       <AgentCard 
                         title="Hotel Booking Agent" 
+                        icon={<Hotel size={18} />}
                         description="Finding accommodations that match your preferences..."
-                        result={<HotelResult detailed={true} />}
-                        detailed={true}
+                        result={<HotelResult detailed={false} />}
+                        detailed={false}
                       />
-                    </TabsContent>
-                    
-                    <TabsContent value="budget">
                       <AgentCard 
                         title="Budget Optimizer Agent" 
+                        icon={<BarChart size={18} />}
                         description="Optimizing your trip to stay within budget..."
-                        result={<BudgetResult detailed={true} />}
-                        detailed={true}
+                        result={<BudgetResult detailed={false} />}
+                        detailed={false}
                       />
-                    </TabsContent>
-                    
-                    <TabsContent value="itinerary">
                       <AgentCard 
                         title="Itinerary Generator Agent" 
+                        icon={<Calendar size={18} />}
                         description="Creating your perfect day-by-day plan..."
-                        result={<ItineraryPreview detailed={true} />}
-                        detailed={true}
+                        result={<ItineraryPreview detailed={false} />}
+                        detailed={false}
                       />
-                    </TabsContent>
-                  </Tabs>
+                    </div>
+                  </TabsContent>
                   
-                  <div className="flex justify-end mt-8">
-                    <Button 
-                      className="bg-[#34e0a1] hover:bg-[#2bc889] text-black px-8 py-2 rounded-full font-medium"
-                      onClick={handleNextStep}
-                    >
-                      View Final Plan
-                    </Button>
-                  </div>
+                  <TabsContent value="destination">
+                    <AgentCard 
+                      title="Destination Finder Agent" 
+                      icon={<Map size={18} />}
+                      description="Finding top 3 destinations based on your preferences..."
+                      result={<DestinationResult detailed={true} />}
+                      detailed={true}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="flights">
+                    <AgentCard 
+                      title="Flight Booking Agent" 
+                      icon={<Plane size={18} />}
+                      description="Searching for the best flight options..."
+                      result={<FlightResult detailed={true} />}
+                      detailed={true}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="hotels">
+                    <AgentCard 
+                      title="Hotel Booking Agent" 
+                      icon={<Hotel size={18} />}
+                      description="Finding accommodations that match your preferences..."
+                      result={<HotelResult detailed={true} />}
+                      detailed={true}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="budget">
+                    <AgentCard 
+                      title="Budget Optimizer Agent" 
+                      icon={<BarChart size={18} />}
+                      description="Optimizing your trip to stay within budget..."
+                      result={<BudgetResult detailed={true} />}
+                      detailed={true}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="itinerary">
+                    <AgentCard 
+                      title="Itinerary Generator Agent" 
+                      icon={<Calendar size={18} />}
+                      description="Creating your perfect day-by-day plan..."
+                      result={<ItineraryPreview detailed={true} />}
+                      detailed={true}
+                    />
+                  </TabsContent>
+                </Tabs>
+                
+                <div className="flex justify-center mt-12">
+                  <Button 
+                    className="bg-gradient-to-r from-[#34e0a1] to-[#2bc889] hover:opacity-90 text-black px-10 py-7 rounded-xl font-medium flex items-center gap-3 shadow-lg transition-all hover:shadow-xl transform hover:-translate-y-1 text-lg"
+                    onClick={handleNextStep}
+                  >
+                    <img 
+                      src="https://static.thenounproject.com/png/6404439-200.png" 
+                      alt="AI Icon" 
+                      className="w-6 h-6"
+                    />
+                    View Final Trip Plan
+                  </Button>
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 3: Final Plan Summary */}
-          {step === 3 && tripPlan && (
-            <div>
-              <TripPlanDisplay 
-                tripPlan={tripPlan} 
-                onBack={() => setStep(1)}
-              />
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 text-gray-300 py-8">
-        <div className="container max-w-5xl mx-auto px-4">
-          <div className="border-t border-gray-700 pt-6 text-sm text-center">
-            <p>© {new Date().getFullYear()} TripNest AI Trip Planner</p>
-            <div className="flex flex-wrap justify-center gap-4 mt-4">
-              <a href="#" className="hover:text-white">Terms of Use</a>
-              <a href="#" className="hover:text-white">Privacy Policy</a>
-              <a href="#" className="hover:text-white">Contact</a>
-            </div>
+              </div>
+            )}
           </div>
-        </div>
-      </footer>
-    </div>
+        )}
+
+        {/* Step 3: Final Plan Summary */}
+        {step === 3 && tripPlan && (
+          <div>
+            <TripPlanDisplay 
+              tripPlan={tripPlan} 
+              onBack={() => setStep(1)}
+            />
+          </div>
+        )}
+      </div>
+    </Layout>
   );
 }
 
 // Agent Result Components
-const AgentCard = ({ title, description, result, detailed }: { 
+const AgentCard = ({ title, icon, description, result, detailed }: {
   title: string; 
+  icon: React.ReactNode;
   description: string; 
   result: React.ReactNode; 
   detailed: boolean; 
-}) => (
-  <Card className="overflow-hidden">
-    <div className="border-b p-4 bg-gray-50">
+}) => {
+  // Get access to the Tabs component
+  const getTabValue = (title: string) => {
+    if (title.includes("Destination")) return "destination";
+    if (title.includes("Flight")) return "flights";
+    if (title.includes("Hotel")) return "hotels";
+    if (title.includes("Budget")) return "budget";
+    if (title.includes("Itinerary")) return "itinerary";
+    return "all";
+  };
+  
+  return (
+    <Card className="overflow-hidden shadow-md border-0 transition-all hover:shadow-lg rounded-xl">
+      <div className="border-b p-4 bg-gradient-to-r from-gray-50 to-white">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-[#edfcf5] rounded-full text-[#34e0a1]">
+            {icon}
+          </div>
+          <div>
       <h3 className="font-bold">{title}</h3>
       <p className="text-sm text-gray-500">{description}</p>
     </div>
-    <CardContent className="p-4">
+        </div>
+      </div>
+      <CardContent className="p-6">
       {result}
       {!detailed && (
         <div className="mt-4 text-right">
-          <Button variant="ghost" className="text-[#0066cc]">
+            <Button 
+              variant="ghost" 
+              className="text-[#0066cc] hover:bg-[#edf5fc] font-medium"
+              onClick={() => {
+                // Find and click the tab with the matching value
+                const tabValue = getTabValue(title);
+                const tabTrigger = document.querySelector(`[data-state][value="${tabValue}"]`);
+                if (tabTrigger && tabTrigger instanceof HTMLElement) {
+                  tabTrigger.click();
+                }
+              }}
+            >
             View Details
           </Button>
         </div>
@@ -404,45 +661,58 @@ const AgentCard = ({ title, description, result, detailed }: {
     </CardContent>
   </Card>
 );
+};
 
 const DestinationResult = ({ detailed }: { detailed: boolean }) => {
   const { destinations, selectedDestination } = useTripContext();
+  console.log("DESTINATION RESULT COMPONENT - destinations:", destinations);
+  
+  // Effect to log destinations data when it changes
+  useEffect(() => {
+    console.log("DESTINATIONS DATA UPDATED:", destinations);
+  }, [destinations]);
   
   // If no destinations yet, show placeholder
   if (!destinations || destinations.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        Destination information will appear here after processing.
+      <div className="p-6 text-center text-gray-500 bg-gray-50 rounded-xl">
+        <Map size={24} className="mx-auto mb-2 text-gray-400" />
+        <p>Destination information will appear here after processing.</p>
       </div>
     );
   }
   
   return (
   <div>
-    <div className="space-y-4">
+      <div className="space-y-6">
         {destinations.slice(0, detailed ? destinations.length : 1).map((destination, index) => (
-          <div key={index} className="flex items-start gap-4">
-        <div className="w-16 h-16 rounded-lg overflow-hidden">
+          <div key={index} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-all">
+            <div className="relative h-40 overflow-hidden">
               <img 
                 src={destination.imageUrl || "https://images.unsplash.com/photo-1614082242765-7c98ca0f3df3?q=80&w=1770&auto=format&fit=crop"} 
                 alt={destination.name} 
                 className="w-full h-full object-cover" 
               />
+              <div className="absolute top-3 right-3">
+                <Badge className="bg-[#34e0a1]/90 text-black font-medium px-3 py-1 backdrop-blur-sm">
+                  {destination.matchPercentage}% match
+                </Badge>
         </div>
-        <div className="flex-1">
-          <div className="flex justify-between">
-                <h4 className="font-bold">{destination.name}, {destination.country}</h4>
-                <div className="text-[#00aa6c] font-medium">{destination.matchPercentage}% match</div>
           </div>
-              <p className="text-sm text-gray-600 mt-1">{destination.description}</p>
+            <div className="p-5">
+              <h4 className="text-xl font-bold">{destination.name}, {destination.country}</h4>
+              <p className="text-gray-600 mt-2">{destination.description}</p>
+
               {detailed && destination.highlights && (
-                <div className="mt-2">
-                  <p className="text-sm font-medium">Highlights:</p>
-                  <ul className="list-disc pl-5 text-sm mt-1">
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Highlights:</p>
+                  <div className="flex flex-wrap gap-2">
                     {destination.highlights.map((highlight, i) => (
-                      <li key={i}>{highlight}</li>
+                      <Badge key={i} variant="outline" className="bg-gray-50 border-gray-200 text-gray-700">
+                        {highlight}
+                      </Badge>
                     ))}
-                  </ul>
+                  </div>
                 </div>
           )}
         </div>
@@ -450,8 +720,17 @@ const DestinationResult = ({ detailed }: { detailed: boolean }) => {
         ))}
         
         {detailed && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium mb-2">Agent Reasoning</h4>
+          <div className="mt-6 p-5 bg-[#edfcf5] rounded-xl border border-[#d0f5e6]">
+            <h4 className="font-medium mb-2 flex items-center gap-2">
+              <div className="p-1 bg-[#34e0a1] rounded-full">
+                <img
+                  src="https://static.thenounproject.com/png/6404439-200.png"
+                  alt="AI Icon"
+                  className="w-4 h-4"
+                />
+              </div>
+              Agent Reasoning
+            </h4>
             <p className="text-sm">
               Based on your preferences for {destinations[0]?.matchPercentage}% match with {destinations[0]?.name}, 
               I've selected these destinations considering your budget, travel dates, and interests. 
@@ -470,66 +749,72 @@ const FlightResult = ({ detailed }: { detailed: boolean }) => {
   // If no flights yet, show placeholder
   if (!flights) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        Flight information will appear here after processing.
+      <div className="p-6 text-center text-gray-500 bg-gray-50 rounded-xl">
+        <Plane size={24} className="mx-auto mb-2 text-gray-400" />
+        <p>Flight information will appear here after processing.</p>
       </div>
     );
   }
   
   return (
-  <div className="space-y-4">
+    <div className="space-y-6">
     <div>
-      <h4 className="font-medium mb-3">Outbound Flight</h4>
-      <div className="border rounded-lg p-4">
-        <div className="flex justify-between items-center mb-3">
+        <h4 className="font-medium mb-4 text-gray-700 flex items-center gap-2">
+          <div className="p-1.5 bg-blue-100 rounded-full text-blue-500">
+            <Plane size={14} />
+          </div>
+          Outbound Flight
+        </h4>
+        <div className="border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-all">
+          <div className="flex justify-between items-center mb-4">
           <div>
-              <p className="font-medium">{flights.outbound.departure.airport} → {flights.outbound.arrival.airport}</p>
-              <p className="text-sm text-gray-500">
+              <p className="font-medium text-lg">{flights.outbound.departure.airport} → {flights.outbound.arrival.airport}</p>
+              <p className="text-gray-500">
                 {flights.outbound.airline} • {flights.outbound.duration} • 
                 {flights.outbound.flightNumber ? ` ${flights.outbound.flightNumber} •` : ''} Direct
               </p>
           </div>
           <div className="text-right">
-              <p className="font-medium">₹{flights.outbound.price.toLocaleString()}</p>
+              <p className="font-bold text-lg">₹{flights.outbound.price.toLocaleString()}</p>
             <p className="text-sm text-gray-500">per person</p>
           </div>
         </div>
         
         {detailed && (
-          <div className="pt-3 border-t">
+            <div className="pt-4 border-t">
             <div className="flex justify-between items-center">
               <div>
                   <p className="text-sm font-medium">{flights.outbound.departure.time}</p>
-                  <p className="text-xs">{flights.outbound.departure.airport} ({flights.outbound.departure.code})</p>
+                  <p className="text-xs text-gray-500">{flights.outbound.departure.airport} ({flights.outbound.departure.code})</p>
               </div>
               <div className="flex-1 px-4">
                 <div className="relative">
                   <div className="h-0.5 bg-gray-200 w-full absolute top-1/2"></div>
                   <div className="flex justify-between relative">
-                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                      <div className="w-3 h-3 rounded-full bg-blue-500 ring-2 ring-blue-100"></div>
+                      <div className="w-3 h-3 rounded-full bg-blue-500 ring-2 ring-blue-100"></div>
                   </div>
                 </div>
                   <p className="text-xs text-center text-gray-500 mt-1">{flights.outbound.duration}</p>
               </div>
               <div>
                   <p className="text-sm font-medium">{flights.outbound.arrival.time}</p>
-                  <p className="text-xs">{flights.outbound.arrival.airport} ({flights.outbound.arrival.code})</p>
+                  <p className="text-xs text-gray-500">{flights.outbound.arrival.airport} ({flights.outbound.arrival.code})</p>
               </div>
             </div>
             
-            <div className="mt-3 flex gap-4 text-xs">
+              <div className="mt-4 flex gap-6 text-xs p-3 bg-gray-50 rounded-lg">
               <div>
                 <p className="text-gray-500">Flight #</p>
-                  <p>{flights.outbound.flightNumber}</p>
+                  <p className="font-medium">{flights.outbound.flightNumber}</p>
               </div>
               <div>
                 <p className="text-gray-500">Aircraft</p>
-                  <p>{flights.outbound.aircraft || 'Standard'}</p>
+                  <p className="font-medium">{flights.outbound.aircraft || 'Standard'}</p>
               </div>
               <div>
                 <p className="text-gray-500">Class</p>
-                  <p>{flights.outbound.class || 'Economy'}</p>
+                  <p className="font-medium">{flights.outbound.class || 'Economy'}</p>
               </div>
             </div>
           </div>
@@ -538,57 +823,62 @@ const FlightResult = ({ detailed }: { detailed: boolean }) => {
     </div>
     
     <div>
-      <h4 className="font-medium mb-3">Return Flight</h4>
-      <div className="border rounded-lg p-4">
-        <div className="flex justify-between items-center mb-3">
+        <h4 className="font-medium mb-4 text-gray-700 flex items-center gap-2">
+          <div className="p-1.5 bg-blue-100 rounded-full text-blue-500">
+            <Plane size={14} style={{ transform: 'rotate(180deg)' }} />
+          </div>
+          Return Flight
+        </h4>
+        <div className="border rounded-xl p-5 bg-white shadow-sm hover:shadow-md transition-all">
+          <div className="flex justify-between items-center mb-4">
           <div>
-              <p className="font-medium">{flights.return.departure.airport} → {flights.return.arrival.airport}</p>
-              <p className="text-sm text-gray-500">
+              <p className="font-medium text-lg">{flights.return.departure.airport} → {flights.return.arrival.airport}</p>
+              <p className="text-gray-500">
                 {flights.return.airline} • {flights.return.duration} • 
                 {flights.return.flightNumber ? ` ${flights.return.flightNumber} •` : ''} Direct
               </p>
           </div>
           <div className="text-right">
-              <p className="font-medium">₹{flights.return.price.toLocaleString()}</p>
+              <p className="font-bold text-lg">₹{flights.return.price.toLocaleString()}</p>
             <p className="text-sm text-gray-500">per person</p>
           </div>
         </div>
         
         {detailed && (
-          <div className="pt-3 border-t">
+            <div className="pt-4 border-t">
             <div className="flex justify-between items-center">
               <div>
                   <p className="text-sm font-medium">{flights.return.departure.time}</p>
-                  <p className="text-xs">{flights.return.departure.airport} ({flights.return.departure.code})</p>
+                  <p className="text-xs text-gray-500">{flights.return.departure.airport} ({flights.return.departure.code})</p>
               </div>
               <div className="flex-1 px-4">
                 <div className="relative">
                   <div className="h-0.5 bg-gray-200 w-full absolute top-1/2"></div>
                   <div className="flex justify-between relative">
-                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                    <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                      <div className="w-3 h-3 rounded-full bg-blue-500 ring-2 ring-blue-100"></div>
+                      <div className="w-3 h-3 rounded-full bg-blue-500 ring-2 ring-blue-100"></div>
                   </div>
                 </div>
                   <p className="text-xs text-center text-gray-500 mt-1">{flights.return.duration}</p>
               </div>
               <div>
                   <p className="text-sm font-medium">{flights.return.arrival.time}</p>
-                  <p className="text-xs">{flights.return.arrival.airport} ({flights.return.arrival.code})</p>
+                  <p className="text-xs text-gray-500">{flights.return.arrival.airport} ({flights.return.arrival.code})</p>
               </div>
             </div>
             
-            <div className="mt-3 flex gap-4 text-xs">
+              <div className="mt-4 flex gap-6 text-xs p-3 bg-gray-50 rounded-lg">
               <div>
                 <p className="text-gray-500">Flight #</p>
-                  <p>{flights.return.flightNumber}</p>
+                  <p className="font-medium">{flights.return.flightNumber}</p>
               </div>
               <div>
                 <p className="text-gray-500">Aircraft</p>
-                  <p>{flights.return.aircraft || 'Standard'}</p>
+                  <p className="font-medium">{flights.return.aircraft || 'Standard'}</p>
               </div>
               <div>
                 <p className="text-gray-500">Class</p>
-                  <p>{flights.return.class || 'Economy'}</p>
+                  <p className="font-medium">{flights.return.class || 'Economy'}</p>
               </div>
             </div>
           </div>
@@ -597,8 +887,17 @@ const FlightResult = ({ detailed }: { detailed: boolean }) => {
     </div>
     
     {detailed && (
-      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-        <h4 className="font-medium mb-2">Agent Reasoning</h4>
+        <div className="mt-6 p-5 bg-[#edfcf5] rounded-xl border border-[#d0f5e6]">
+          <h4 className="font-medium mb-2 flex items-center gap-2">
+            <div className="p-1 bg-[#34e0a1] rounded-full">
+              <img
+                src="https://static.thenounproject.com/png/6404439-200.png"
+                alt="AI Icon"
+                className="w-4 h-4"
+              />
+            </div>
+            Agent Reasoning
+          </h4>
         <p className="text-sm">
             I've selected these flights based on your budget constraints and travel dates. 
             {flights.outbound.airline} offers the best value with direct flights in both directions. 
@@ -626,30 +925,26 @@ const HotelResult = ({ detailed }: { detailed: boolean }) => {
   // If no hotels yet, show placeholder
   if (!selectedHotel || hotels.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        Hotel information will appear here after processing.
+      <div className="p-6 text-center text-gray-500 bg-gray-50 rounded-xl">
+        <Hotel size={24} className="mx-auto mb-2 text-gray-400" />
+        <p>Hotel information will appear here after processing.</p>
       </div>
     );
   }
   
   return (
-    <div className="space-y-4">
-      <div>
-        <div className="flex items-start gap-4 mb-4">
-          <div className="w-20 h-20 rounded-lg overflow-hidden">
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-all">
+        <div className="relative h-48 overflow-hidden">
             <img 
               src={selectedHotel.imageUrls?.[0] || "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1770&auto=format&fit=crop"} 
               alt={selectedHotel.name} 
-              className="w-full h-full object-cover" 
-            />
-          </div>
-          <div className="flex-1">
-            <div className="flex justify-between">
-              <h4 className="font-bold">{selectedHotel.name}</h4>
-              <p className="font-medium">₹{selectedHotel.pricePerNight.toLocaleString()}/night</p>
-            </div>
-            <div className="flex items-center gap-1 my-1">
-              <div className="flex text-[#00aa6c]">
+            className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+            <p className="text-white font-bold text-lg">{selectedHotel.name}</p>
+            <div className="flex items-center gap-1">
+              <div className="flex text-[#34e0a1]">
                 {Array(selectedHotel.stars).fill(0).map((_, i) => (
                   <Star key={i} size={14} fill="currentColor" />
                 ))}
@@ -657,10 +952,20 @@ const HotelResult = ({ detailed }: { detailed: boolean }) => {
                   <Star key={i} size={14} />
                 ))}
               </div>
-              <span className="text-sm text-gray-500">({selectedHotel.reviews} reviews)</span>
+              <span className="text-sm text-white/80">({selectedHotel.reviews} reviews)</span>
             </div>
-            <p className="text-sm text-gray-600">{selectedHotel.location}</p>
           </div>
+          <div className="absolute top-3 right-3">
+            <Badge className="bg-white/90 text-black font-medium px-3 py-1 backdrop-blur-sm">
+              ₹{selectedHotel.pricePerNight.toLocaleString()}/night
+            </Badge>
+          </div>
+        </div>
+
+        <div className="p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin size={16} className="text-gray-400" />
+            <p className="text-gray-600">{selectedHotel.location}</p>
         </div>
         
         <div className="flex justify-end">
@@ -677,58 +982,54 @@ const HotelResult = ({ detailed }: { detailed: boolean }) => {
         {(detailed && expandedHotel === 'primary') && (
           <div className="mt-4 animate-in fade-in duration-200">
             {selectedHotel.imageUrls && selectedHotel.imageUrls.length > 1 && (
-            <div className="grid grid-cols-2 gap-2 mb-4">
-                {selectedHotel.imageUrls.map((url, i) => (
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {selectedHotel.imageUrls.slice(0, 6).map((url, i) => (
                   <img 
                     key={i} 
                     src={url} 
-                    alt={`${selectedHotel.name} ${i+1}`} 
-                    className="rounded-lg aspect-video object-cover" 
+                      alt={`${selectedHotel.name} ${i + 1}`}
+                      className="rounded-lg aspect-video object-cover hover:opacity-90 transition-opacity cursor-pointer"
                   />
                 ))}
             </div>
             )}
             
-            <div className="border-t pt-3">
-              <h4 className="font-medium mb-2">Amenities</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="border-t pt-4 mt-4">
+                <h4 className="font-medium mb-3 text-gray-700">Amenities</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
                 {selectedHotel.amenities.map((amenity, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                  <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                    <div key={i} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg">
+                      <div className="w-2 h-2 bg-[#34e0a1] rounded-full"></div>
                     <span>{amenity}</span>
                 </div>
                 ))}
                 </div>
                 </div>
             
-            <div className="border-t pt-3 mt-3">
-              <h4 className="font-medium mb-2">Description</h4>
-              <p className="text-sm">{selectedHotel.description}</p>
+              <div className="border-t pt-4 mt-4">
+                <h4 className="font-medium mb-2 text-gray-700">Description</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">{selectedHotel.description}</p>
             </div>
           </div>
         )}
+        </div>
       </div>
       
       {detailed && hotels.length > 1 && (
         <>
           <div className="h-px w-full bg-gray-200 my-6"></div>
           
-          <div>
-            <div className="flex items-start gap-4">
-              <div className="w-20 h-20 rounded-lg overflow-hidden">
+          <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-all">
+            <div className="relative h-48 overflow-hidden">
                 <img 
                   src={hotels[1].imageUrls?.[0] || "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?q=80&w=1774&auto=format&fit=crop"} 
                   alt={hotels[1].name} 
-                  className="w-full h-full object-cover" 
-                />
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between">
-                  <h4 className="font-bold">{hotels[1].name}</h4>
-                  <p className="font-medium">₹{hotels[1].pricePerNight.toLocaleString()}/night</p>
-                </div>
-                <div className="flex items-center gap-1 my-1">
-                  <div className="flex text-[#00aa6c]">
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                <p className="text-white font-bold text-lg">{hotels[1].name}</p>
+                <div className="flex items-center gap-1">
+                  <div className="flex text-[#34e0a1]">
                     {Array(hotels[1].stars).fill(0).map((_, i) => (
                       <Star key={i} size={14} fill="currentColor" />
                     ))}
@@ -736,13 +1037,23 @@ const HotelResult = ({ detailed }: { detailed: boolean }) => {
                       <Star key={i} size={14} />
                     ))}
                   </div>
-                  <span className="text-sm text-gray-500">({hotels[1].reviews} reviews)</span>
+                  <span className="text-sm text-white/80">({hotels[1].reviews} reviews)</span>
                 </div>
-                <p className="text-sm text-gray-600">{hotels[1].location}</p>
+              </div>
+              <div className="absolute top-3 right-3">
+                <Badge className="bg-white/90 text-black font-medium px-3 py-1 backdrop-blur-sm">
+                  ₹{hotels[1].pricePerNight.toLocaleString()}/night
+                </Badge>
               </div>
             </div>
             
-            <div className="flex justify-end mt-3">
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <MapPin size={16} className="text-gray-400" />
+                <p className="text-gray-600">{hotels[1].location}</p>
+              </div>
+
+              <div className="flex justify-end">
               <Button
                 variant="outline"
                 size="sm"
@@ -756,40 +1067,50 @@ const HotelResult = ({ detailed }: { detailed: boolean }) => {
             {expandedHotel === 'secondary' && (
               <div className="mt-4 animate-in fade-in duration-200">
                 {hotels[1].imageUrls && hotels[1].imageUrls.length > 1 && (
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                    {hotels[1].imageUrls.map((url, i) => (
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      {hotels[1].imageUrls.slice(0, 6).map((url, i) => (
                       <img 
                         key={i} 
                         src={url} 
-                        alt={`${hotels[1].name} ${i+1}`} 
-                        className="rounded-lg aspect-video object-cover" 
+                          alt={`${hotels[1].name} ${i + 1}`}
+                          className="rounded-lg aspect-video object-cover hover:opacity-90 transition-opacity cursor-pointer"
                       />
                     ))}
                 </div>
                 )}
                 
-                <div className="border-t pt-3">
-                  <h4 className="font-medium mb-2">Amenities</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="font-medium mb-3 text-gray-700">Amenities</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
                     {hotels[1].amenities.map((amenity, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                      <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                        <div key={i} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg">
+                          <div className="w-2 h-2 bg-[#34e0a1] rounded-full"></div>
                         <span>{amenity}</span>
                     </div>
                     ))}
                     </div>
                     </div>
                 
-                <div className="border-t pt-3 mt-3">
-                  <h4 className="font-medium mb-2">Description</h4>
-                  <p className="text-sm">{hotels[1].description}</p>
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="font-medium mb-2 text-gray-700">Description</h4>
+                    <p className="text-sm text-gray-600 leading-relaxed">{hotels[1].description}</p>
                 </div>
               </div>
             )}
+            </div>
           </div>
           
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium mb-2">Agent Reasoning</h4>
+          <div className="mt-6 p-5 bg-[#edfcf5] rounded-xl border border-[#d0f5e6]">
+            <h4 className="font-medium mb-2 flex items-center gap-2">
+              <div className="p-1 bg-[#34e0a1] rounded-full">
+                <img
+                  src="https://static.thenounproject.com/png/6404439-200.png"
+                  alt="AI Icon"
+                  className="w-4 h-4"
+                />
+              </div>
+              Agent Reasoning
+            </h4>
             <p className="text-sm">
               I've selected {selectedHotel.name} as your primary option because it matches your preference for 
               {selectedHotel.location.toLowerCase().includes('beach') ? ' beachfront location' : ' convenient location'} and 
@@ -813,50 +1134,94 @@ const BudgetResult = ({ detailed }: { detailed: boolean }) => {
   // If no budget yet, show placeholder
   if (!budget) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        Budget information will appear here after processing.
+      <div className="p-6 text-center text-gray-500 bg-gray-50 rounded-xl">
+        <BarChart size={24} className="mx-auto mb-2 text-gray-400" />
+        <p>Budget information will appear here after processing.</p>
       </div>
     );
   }
   
-  const budgetPercentage = Math.round((budget.total / budget.originalBudget) * 100);
+  const budgetPercentage = Math.round((budget?.mainPlan?.total / budget?.mainPlan?.originalBudget) * 100);
+  const isOverBudget = budgetPercentage > 100;
   
   return (
-  <div className="space-y-4">
-    <div>
-      <div className="flex justify-between mb-4">
-        <div>
-          <p className="font-medium">Original Budget</p>
-            <p className="text-2xl font-bold">₹{budget.originalBudget.toLocaleString()}</p>
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="flex justify-between items-center mb-6">
+          <div className="text-center p-4 bg-gray-50 rounded-xl flex-1 mr-3">
+            <p className="text-sm font-medium text-gray-500 mb-1">Original Budget</p>
+            <p className="text-3xl font-bold bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent">
+              ₹{budget?.mainPlan?.originalBudget?.toLocaleString()}
+            </p>
         </div>
-        <div>
-          <p className="font-medium">Estimated Cost</p>
-            <p className="text-2xl font-bold">₹{budget.total.toLocaleString()}</p>
+          <div className="text-center p-4 bg-gray-50 rounded-xl flex-1 ml-3">
+            <p className="text-sm font-medium text-gray-500 mb-1">Estimated Cost</p>
+            <p className={`text-3xl font-bold ${isOverBudget ?
+              'bg-gradient-to-r from-amber-500 to-amber-600' :
+              'bg-gradient-to-r from-[#34e0a1] to-[#2bc889]'} bg-clip-text text-transparent`}>
+              ₹{budget?.mainPlan?.total?.toLocaleString()}
+            </p>
         </div>
       </div>
       
-      <div className="relative h-6 bg-gray-200 rounded-full overflow-hidden mb-2">
-          <div 
-            className={`absolute top-0 left-0 h-full ${budgetPercentage > 100 ? 'bg-amber-500' : 'bg-[#34e0a1]'} w-[${Math.min(budgetPercentage, 100)}%]`}
+        <div className="mb-6">
+          <div className="flex justify-between text-sm mb-2">
+            <span>Budget Usage</span>
+            <span className={isOverBudget ? 'text-amber-500 font-medium' : 'text-[#34e0a1] font-medium'}>
+              {budgetPercentage}%
+            </span>
+          </div>
+          <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className={`absolute top-0 left-0 h-full ${isOverBudget ? 'bg-amber-500' : 'bg-gradient-to-r from-[#34e0a1] to-[#2bc889]'}`}
             style={{ width: `${Math.min(budgetPercentage, 100)}%` }}
           ></div>
       </div>
-      <div className="flex justify-between text-xs text-gray-500">
-          <span>Budget: ₹{budget.originalBudget.toLocaleString()}</span>
-          <span>Current Plan: ₹{budget.total.toLocaleString()} ({budgetPercentage}%)</span>
+          <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <span>₹0</span>
+            <span className="font-medium">Budget: ₹{budget?.mainPlan?.originalBudget?.toLocaleString()}</span>
+            <span>₹{(budget?.mainPlan?.originalBudget * 1.5).toLocaleString()}</span>
+          </div>
       </div>
       
-        {budget.total > budget.originalBudget && (
-      <div className="p-4 bg-amber-50 rounded-lg mt-4">
-        <p className="text-sm">
-              Your trip is ₹{(budget.total - budget.originalBudget).toLocaleString()} over budget. Consider these optimizations:
-        </p>
-        <ul className="list-disc pl-5 mt-2 text-sm">
-              {budget.alternatives && budget.alternatives.length > 0 && budget.alternatives[0].total < budget.total && (
-                <li>Choose a {budget.alternatives[0].name || 'more economical option'} (saves ~₹{(budget.total - budget.alternatives[0].total).toLocaleString()})</li>
+        {budget?.mainPlan?.total > budget?.mainPlan?.originalBudget && (
+          <div className="p-4 bg-amber-50 rounded-lg border border-amber-100">
+            <p className="text-amber-800 font-medium mb-2 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              Budget Alert: ₹{(budget?.mainPlan?.total - budget?.mainPlan?.originalBudget).toLocaleString()} over budget
+            </p>
+            <p className="text-sm text-amber-700 mb-2">Consider these optimizations:</p>
+            <ul className="space-y-2">
+              {budget?.alternatives && budget?.alternatives?.length > 0 && budget?.alternatives[0]?.total < budget?.mainPlan?.total && (
+                <li className="flex items-start gap-2 text-sm text-amber-800">
+                  <div className="mt-1 min-w-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+                  <span>Choose a {budget.alternatives[0].name || 'more economical option'} (saves ~₹{(budget.mainPlan.total - budget.alternatives[0].total).toLocaleString()})</span>
+                </li>
               )}
-          <li>Travel during weekdays for cheaper flights (saves ~₹4,000)</li>
-          <li>Reduce planned activities or select free alternatives (saves ~₹5,000)</li>
+              <li className="flex items-start gap-2 text-sm text-amber-800">
+                <div className="mt-1 min-w-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <span>Travel during weekdays for cheaper flights (saves ~₹4,000)</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-amber-800">
+                <div className="mt-1 min-w-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <span>Reduce planned activities or select free alternatives (saves ~₹5,000)</span>
+              </li>
         </ul>
       </div>
         )}
@@ -864,86 +1229,132 @@ const BudgetResult = ({ detailed }: { detailed: boolean }) => {
     
     {detailed && (
       <>
-        <div className="border-t pt-4">
-          <h4 className="font-medium mb-3">Cost Breakdown</h4>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                <span>Flights</span>
-              </div>
-                <div className="font-medium">₹{budget.flights.toLocaleString()} ({Math.round((budget.flights / budget.total) * 100)}%)</div>
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span>Accommodation</span>
-              </div>
-                <div className="font-medium">₹{budget.accommodation.toLocaleString()} ({Math.round((budget.accommodation / budget.total) * 100)}%)</div>
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                <span>Activities</span>
-              </div>
-                <div className="font-medium">₹{budget.activities.toLocaleString()} ({Math.round((budget.activities / budget.total) * 100)}%)</div>
-            </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <span>Food</span>
-                </div>
-                <div className="font-medium">₹{budget.food.toLocaleString()} ({Math.round((budget.food / budget.total) * 100)}%)</div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span>Transportation</span>
-                </div>
-                <div className="font-medium">₹{budget.transportation.toLocaleString()} ({Math.round((budget.transportation / budget.total) * 100)}%)</div>
-              </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-gray-500"></div>
-                  <span>Miscellaneous</span>
-                </div>
-                <div className="font-medium">₹{budget.miscellaneous.toLocaleString()} ({Math.round((budget.miscellaneous / budget.total) * 100)}%)</div>
-              </div>
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <h4 className="font-medium mb-4 text-gray-700">Cost Breakdown</h4>
+
+            <div className="space-y-4">
+              <BudgetItem
+                color="bg-blue-500"
+                label="Flights"
+                amount={budget?.mainPlan?.flights}
+                total={budget?.mainPlan?.total}
+              />
+              <BudgetItem
+                color="bg-green-500"
+                label="Accommodation"
+                amount={budget?.mainPlan?.accommodation}
+                total={budget?.mainPlan?.total}
+              />
+              <BudgetItem
+                color="bg-purple-500"
+                label="Activities"
+                amount={budget?.mainPlan?.activities}
+                total={budget?.mainPlan?.total}
+              />
+              <BudgetItem
+                color="bg-yellow-500"
+                label="Food"
+                amount={budget?.mainPlan?.food}
+                total={budget?.mainPlan?.total}
+              />
+              <BudgetItem
+                color="bg-red-500"
+                label="Transportation"
+                amount={budget?.mainPlan?.transportation}
+                total={budget?.mainPlan?.total}
+              />
+              <BudgetItem
+                color="bg-gray-500"
+                label="Miscellaneous"
+                amount={budget?.mainPlan?.miscellaneous}
+                total={budget?.mainPlan?.total}
+              />
           </div>
         </div>
         
-          {budget.alternatives && budget.alternatives.length > 0 && (
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-          <h4 className="font-medium mb-2">Agent Reasoning</h4>
+          {budget?.alternatives && budget?.alternatives?.length > 0 && (
+            <div className="mt-6 p-5 bg-[#edfcf5] rounded-xl border border-[#d0f5e6]">
+              <h4 className="font-medium mb-2 flex items-center gap-2">
+                <div className="p-1 bg-[#34e0a1] rounded-full">
+                  <img
+                    src="https://static.thenounproject.com/png/6404439-200.png"
+                    alt="AI Icon"
+                    className="w-4 h-4"
+                  />
+                </div>
+                Agent Reasoning
+              </h4>
           <p className="text-sm">
             I've analyzed your preferences and the destination costs to provide the most optimized trip. 
-                {budget.total > budget.originalBudget ? 
+                {budget?.mainPlan?.total > budget?.mainPlan?.originalBudget ?
                   ` The current plan exceeds your budget primarily due to the accommodation and premium activities.` : 
                   ` The current plan fits within your budget while maintaining quality experiences.`
                 }
                 Here are alternative plans that offer different value propositions:
               </p>
               
-              {budget.alternatives.map((alt, index) => (
-                <div key={index} className="mt-3">
-                  <p className="text-sm font-medium">{alt.name}: ₹{alt.total.toLocaleString()}</p>
-            <ul className="list-disc pl-5 mt-1 text-sm">
-                    {alt.breakdown.flights && (
-                      <li>Flights: ₹{alt.breakdown.flights.toLocaleString()}</li>
-                    )}
-                    {alt.breakdown.accommodation && (
-                      <li>Accommodation: ₹{alt.breakdown.accommodation.toLocaleString()}</li>
-                    )}
-                    {alt.breakdown.activities && (
-                      <li>Activities: ₹{alt.breakdown.activities.toLocaleString()}</li>
-                    )}
-            </ul>
+              <div className="mt-4 space-y-3">
+                {budget?.alternatives?.map((alt, index) => (
+                  <div key={index} className="bg-white p-3 rounded-lg border border-gray-100">
+                    <p className="text-sm font-medium flex justify-between items-center">
+                      <span>{alt.name}</span>
+                      <span className="text-[#34e0a1]">₹{alt?.total?.toLocaleString()}</span>
+                    </p>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {alt?.breakdown?.flights && (
+                        <div className="text-xs bg-gray-50 p-2 rounded flex justify-between">
+                          <span>Flights</span>
+                          <span className="font-medium">₹{alt?.breakdown?.flights?.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {alt?.breakdown?.accommodation && (
+                        <div className="text-xs bg-gray-50 p-2 rounded flex justify-between">
+                          <span>Accommodation</span>
+                          <span className="font-medium">₹{alt?.breakdown?.accommodation?.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {alt?.breakdown?.activities && (
+                        <div className="text-xs bg-gray-50 p-2 rounded flex justify-between">
+                          <span>Activities</span>
+                          <span className="font-medium">₹{alt?.breakdown?.activities?.toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
           </div>
               ))}
+              </div>
           </div>
           )}
       </>
     )}
+  </div>
+);
+};
+
+// Budget Item Component
+const BudgetItem = ({ color, label, amount, total }: {
+  color: string;
+  label: string;
+  amount: number;
+  total: number;
+}) => {
+  const percentage = Math.round((amount / total) * 100);
+
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <div className={`w-3 h-3 rounded-full ${color}`}></div>
+          <span>{label}</span>
+        </div>
+        <div className="font-medium">₹{amount?.toLocaleString()} <span className="text-gray-400 text-xs">({percentage}%)</span></div>
+      </div>
+      <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className={`absolute top-0 left-0 h-full ${color}`}
+          style={{ width: `${percentage}%` }}
+        ></div>
+      </div>
   </div>
 );
 };
@@ -954,8 +1365,9 @@ const ItineraryPreview = ({ detailed }: { detailed: boolean }) => {
   // If no itinerary yet, show placeholder
   if (!itinerary || itinerary.length === 0) {
     return (
-      <div className="p-4 text-center text-gray-500">
-        Itinerary information will appear here after processing.
+      <div className="p-6 text-center text-gray-500 bg-gray-50 rounded-xl">
+        <Calendar size={24} className="mx-auto mb-2 text-gray-400" />
+        <p>Itinerary information will appear here after processing.</p>
           </div>
     );
   }
@@ -964,45 +1376,149 @@ const ItineraryPreview = ({ detailed }: { detailed: boolean }) => {
   const displayItinerary = detailed ? itinerary : itinerary.slice(0, 3);
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       {displayItinerary.map((day, index) => (
-        <div key={index}>
-          <div className="flex items-center gap-2 mb-3">
-            <Badge className="bg-blue-100 text-blue-800">Day {day.day}</Badge>
-            <h4 className="font-medium">{day.title}</h4>
+        <div key={index} className="relative">
+          {/* Day header */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="bg-[#34e0a1]/10 text-[#2bc889] font-bold w-12 h-12 rounded-full flex items-center justify-center border-4 border-white shadow-sm">
+              {day?.day}
           </div>
-          <ul className="list-disc pl-5 text-sm space-y-1">
-            {day.activities.map((activity, actIndex) => (
-              <li key={actIndex}>
-                {activity.time && <span className="font-medium">{activity.time}: </span>}
-                {activity.description}
-                {activity.cost !== undefined && activity.cost > 0 && <span className="text-gray-500"> (₹{activity.cost.toLocaleString()})</span>}
-                {detailed && activity.location && (
-                  <div className="text-xs text-gray-500 mt-0.5">Location: {activity.location}</div>
-                )}
-                {detailed && activity.notes && (
-                  <div className="text-xs text-gray-500 mt-0.5">Note: {activity.notes}</div>
-                )}
-            </li>
-            ))}
-          </ul>
+            <div>
+              <Badge className="bg-blue-100 text-blue-800 font-medium mb-1">Day {day.day}</Badge>
+              <h4 className="font-bold text-lg">{day?.title}</h4>
+            </div>
+          </div>
+
+          {/* Day timeline */}
+          <div className="pl-6 relative">
+            {/* Timeline line */}
+            <div className="absolute left-6 top-2 bottom-0 w-px bg-gray-200"></div>
+
+            {/* Activities */}
+            <div className="space-y-6">
+              {day?.activities?.map((activity, actIndex) => (
+                <div key={actIndex} className="relative">
+                  {/* Timeline dot */}
+                  <div className="absolute left-0 top-2 w-3 h-3 bg-[#34e0a1] rounded-full -translate-x-[7px] z-10"></div>
+
+                  {/* Activity card */}
+                  <div className="ml-6 bg-white rounded-lg p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                    <div className="flex justify-between">
+                      {activity?.time && (
+                        <Badge variant="outline" className="bg-gray-50 text-gray-700 mb-2">
+                          {activity?.time}
+                        </Badge>
+                      )}
+                      {activity?.cost !== undefined && activity?.cost > 0 && (
+                        <Badge variant="outline" className="bg-[#edfcf5] text-[#2bc889] mb-2">
+                          ₹{activity?.cost?.toLocaleString()}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <p className="font-medium mb-1">{activity?.description}</p>
+
+                    {detailed && (activity?.location || activity?.notes) && (
+                      <div className="mt-2 space-y-2">
+                        {activity?.location && (
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <MapPin size={12} />
+                            <span>{activity?.location}</span>
+                          </div>
+                        )}
+                        {activity?.notes && (
+                          <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded-md">
+                            <span className="font-medium">Note:</span> {activity?.notes}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       ))}
+
+      {/* Show more days button if not detailed */}
+      {!detailed && itinerary.length > 3 && (
+        <div className="pt-4 text-center">
+          <Button variant="outline" className="text-[#0066cc] hover:bg-[#edf5fc]">
+            View Full Itinerary
+          </Button>
+        </div>
+      )}
       
       {detailed && (
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-          <h4 className="font-medium mb-2">Agent Reasoning</h4>
+        <div className="mt-6 p-5 bg-[#edfcf5] rounded-xl border border-[#d0f5e6]">
+          <h4 className="font-medium mb-2 flex items-center gap-2">
+            <div className="p-1 bg-[#34e0a1] rounded-full">
+              <img
+                src="https://static.thenounproject.com/png/6404439-200.png"
+                alt="AI Icon"
+                className="w-4 h-4"
+              />
+            </div>
+            Agent Reasoning
+          </h4>
           <p className="text-sm">
             I've designed this itinerary to balance beach activities, cultural experiences, and adventure elements 
             based on your preferences. The schedule provides:
           </p>
-          <ul className="list-disc pl-5 mt-2 text-sm">
-            <li>Gradual pace - Starting with relaxation, then increasing activity levels</li>
-            <li>Geographic efficiency - Grouping attractions by area to minimize travel time</li>
-            <li>Experience variety - Mix of beaches, water sports, cultural sites, and natural attractions</li>
-            <li>Culinary exploration - Selected restaurants showcase local cuisine at different price points</li>
-          </ul>
-          <p className="text-sm mt-2">
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="bg-white p-3 rounded-lg shadow-sm flex items-start gap-2">
+              <div className="p-1 rounded-full bg-blue-100 text-blue-500 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+              </div>
+              <div className="text-sm">
+                <p className="font-medium">Gradual pace</p>
+                <p className="text-gray-600">Starting with relaxation, then increasing activity levels</p>
+              </div>
+            </div>
+            <div className="bg-white p-3 rounded-lg shadow-sm flex items-start gap-2">
+              <div className="p-1 rounded-full bg-green-100 text-green-500 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="8 12 12 16 16 12"></polyline>
+                  <line x1="12" y1="8" x2="12" y2="16"></line>
+                </svg>
+              </div>
+              <div className="text-sm">
+                <p className="font-medium">Geographic efficiency</p>
+                <p className="text-gray-600">Grouping attractions by area to minimize travel time</p>
+              </div>
+            </div>
+            <div className="bg-white p-3 rounded-lg shadow-sm flex items-start gap-2">
+              <div className="p-1 rounded-full bg-purple-100 text-purple-500 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </div>
+              <div className="text-sm">
+                <p className="font-medium">Experience variety</p>
+                <p className="text-gray-600">Mix of beaches, water sports, cultural sites, and natural attractions</p>
+              </div>
+            </div>
+            <div className="bg-white p-3 rounded-lg shadow-sm flex items-start gap-2">
+              <div className="p-1 rounded-full bg-yellow-100 text-yellow-500 mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                  <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                  <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                </svg>
+              </div>
+              <div className="text-sm">
+                <p className="font-medium">Culinary exploration</p>
+                <p className="text-gray-600">Selected restaurants showcase local cuisine at different price points</p>
+              </div>
+            </div>
+          </div>
+          <p className="text-sm mt-4">
             I've included free time for spontaneous activities and relaxation. Each day includes at least one 
             highlight activity while avoiding overscheduling.
           </p>

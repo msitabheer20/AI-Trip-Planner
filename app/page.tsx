@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar } from "@/components/ui/avatar";
+// import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import Layout from '@/components/layout/Layout';
 import { 
   Carousel,
   CarouselContent,
@@ -17,163 +18,13 @@ import {
 } from "@/components/ui/carousel";
 
 export default function Home() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [showSubNav, setShowSubNav] = useState(false);
-  const searchSectionRef = useRef<HTMLDivElement>(null);
   
-  useEffect(() => {
-    const handleScroll = () => {
-      // For the main navbar sticky effect
-      if (window.scrollY > 10) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-      
-      // For showing additional links after scrolling past search section
-      if (searchSectionRef.current) {
-        const searchSectionRect = searchSectionRef.current.getBoundingClientRect();
-        if (searchSectionRect.bottom < 0) {
-          setShowSubNav(true);
-        } else {
-          setShowSubNav(false);
-        }
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
+  const searchSectionRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      {/* Header */}
-      <header className={`${isScrolled ? 'fixed top-0 left-0 right-0 border-b border-gray-200 shadow-sm bg-white/95 backdrop-blur-sm z-50' : 'bg-white'} transition-all duration-300`}>
-        <div className="container max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2">
-              <div className="bg-gradient-to-r from-[#34e0a1] to-[#00aa6c] p-2.5 rounded-xl shadow-md transform rotate-12 hover:rotate-0 transition-transform duration-300">
-                <MapPin size={24} className="text-white drop-shadow-sm" />
-              </div>
-              <span className="font-bold text-2xl tracking-tight">
-                Trip<span className="text-transparent bg-clip-text bg-gradient-to-r from-[#34e0a1] to-[#00aa6c]">Nest</span>
-              </span>
-            </div>
-          </div>
-          <nav className="hidden md:flex justify-center items-center gap-8">
-            <a href="#" className="text-black hover:text-[#34e0a1] font-medium transition-colors duration-200 relative group">
-              Discover
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#34e0a1] transition-all duration-300 group-hover:w-full"></span>
-            </a>
-            <a href="#" className="text-black hover:text-[#34e0a1] font-medium transition-colors duration-200 relative group">
-              Trips
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#34e0a1] transition-all duration-300 group-hover:w-full"></span>
-            </a>
-            <a href="#" className="text-black hover:text-[#34e0a1] font-medium transition-colors duration-200 relative group">
-              Review
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#34e0a1] transition-all duration-300 group-hover:w-full"></span>
-            </a>
-            <a href="#" className="text-black hover:text-[#34e0a1] font-medium transition-colors duration-200 relative group">
-              Forums
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#34e0a1] transition-all duration-300 group-hover:w-full"></span>
-            </a>
-          </nav>
-          <div className="hidden md:flex items-center gap-4">
-            <button className="text-gray-600 hover:text-gray-900">
-              <Heart size={22} />
-            </button>
-            <button className="text-gray-600 hover:text-gray-900">
-              <Bell size={22} />
-            </button>
-            <Button className="text-white rounded-full font-bold border border-gray-300 hover:bg-[#34e0a1] hover:text-white hover:border-transparent transition-all duration-300 py-6">Sign In</Button>
-          </div>
-          <button 
-            className="md:hidden" 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-        
-        {/* Mobile menu */}
-        {isMenuOpen && (
-          <div className="md:hidden px-4 py-4 border-t">
-            <nav className="flex flex-col gap-4">
-              <a href="#" className="text-black hover:text-[#34e0a1] font-medium transition-colors duration-200 relative group w-fit">
-                Discover
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#34e0a1] transition-all duration-300 group-hover:w-full"></span>
-              </a>
-              <a href="#" className="text-black hover:text-[#34e0a1] font-medium transition-colors duration-200 relative group w-fit">
-                Trips
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#34e0a1] transition-all duration-300 group-hover:w-full"></span>
-              </a>
-              <a href="#" className="text-black hover:text-[#34e0a1] font-medium transition-colors duration-200 relative group w-fit">
-                Review
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#34e0a1] transition-all duration-300 group-hover:w-full"></span>
-              </a>
-              <a href="#" className="text-black hover:text-[#34e0a1] font-medium transition-colors duration-200 relative group w-fit">
-                Forums
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#34e0a1] transition-all duration-300 group-hover:w-full"></span>
-              </a>
-            </nav>
-            <div className="mt-4 flex flex-col gap-2">
-              <Button variant="outline" className="w-full">Review</Button>
-              <Button className="w-full text-black border border-gray-300 hover:bg-[#34e0a1] hover:text-white hover:border-transparent transition-all duration-300">Sign In</Button>
-            </div>
-          </div>
-        )}
-        
-        {/* Additional navigation links after scrolling */}
-        {showSubNav && isScrolled && (
-          <div className="hidden md:block border-t border-gray-200 py-2 bg-white/95 backdrop-blur-sm">
-            <div className="container max-w-5xl mx-auto px-4">
-              <nav className="flex justify-center gap-8">
-                <a href="#" className="text-black hover:text-black font-medium transition-colors duration-200 relative group py-1">
-                  <div className="flex items-center gap-1">
-                    <Search size={14} />
-                    <span>Search All</span>
-                  </div>
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
-                </a>
-                <a href="#" className="text-black hover:text-black font-medium transition-colors duration-200 relative group py-1">
-                  <div className="flex items-center gap-1">
-                    <MapPin size={14} />
-                    <span>Hotels</span>
-                  </div>
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
-                </a>
-                <a href="#" className="text-black hover:text-black font-medium transition-colors duration-200 relative group py-1">
-                  <div className="flex items-center gap-1">
-                    <Star size={14} />
-                    <span>Things to do</span>
-                  </div>
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
-                </a>
-                <a href="#" className="text-black hover:text-black font-medium transition-colors duration-200 relative group py-1">
-                  <div className="flex items-center gap-1">
-                    <User size={14} />
-                    <span>Restaurants</span>
-                  </div>
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
-                </a>
-                <a href="#" className="text-black hover:text-black font-medium transition-colors duration-200 relative group py-1">
-                  <div className="flex items-center gap-1">
-                    <Bell size={14} />
-                    <span>Flights</span>
-                  </div>
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full"></span>
-                </a>
-              </nav>
-            </div>
-          </div>
-        )}
-      </header>
-
+    <Layout>
       {/* Search section */}
-      <div ref={searchSectionRef} className={`container max-w-5xl mx-auto px-4 py-12 flex flex-col items-center ${isScrolled ? 'pt-24' : ''}`}>
+      <div ref={searchSectionRef} className={`container max-w-5xl mx-auto px-4 py-12 flex flex-col items-center`}>
         <div className="text-5xl font-bold mb-6">Where to?</div>
         <Tabs defaultValue="all" className="w-full max-w-3xl">
           <TabsList className="grid grid-cols-3 md:grid-cols-6 mb-4">
@@ -314,7 +165,12 @@ export default function Home() {
                 Get custom recs for all the things<br />
                 you're into with AI trip builder
               </p>
-              <Button className="bg-white hover:bg-gray-100 text-[#0066cc] px-8 py-6 rounded-full text-lg font-medium shadow-md transition-transform hover:scale-105 border-none" onClick={() => window.location.href = "/trip-planner"}>
+              <Button className="bg-white hover:bg-gray-100 text-[#0066cc] px-8 py-6 rounded-full text-lg font-medium shadow-md transition-transform hover:scale-105 border-none flex items-center gap-2" onClick={() => window.location.href = "/trip-planner"}>
+                <img 
+                  src="https://static.thenounproject.com/png/6404439-200.png" 
+                  alt="AI Icon" 
+                  className="w-6 h-6"
+                />
                 Start a trip with AI
               </Button>
             </div>
@@ -519,88 +375,19 @@ export default function Home() {
       {/* CTA section */}
       <section className="bg-[#004f32] text-white py-16">
         <div className="container max-w-5xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Get the Tripadvisor App</h2>
-          <p className="mb-8 max-w-lg mx-auto">The Tripadvisor app makes it easy to find the lowest hotel prices, best restaurants, and fun things to do, wherever you go.</p>
+          <h2 className="text-3xl font-bold mb-4">Get the TripNest App</h2>
+          <p className="mb-8 max-w-lg mx-auto">The TripNest app makes it easy to find the lowest hotel prices, best restaurants, and fun things to do, wherever you go.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="outline" className="border-white text-[#004f32] hover:bg-white hover:text-[#004f32]">
+            <Button variant="outline" className="border-white text-white hover:bg-white hover:text-[#004f32]">
               App Store
             </Button>
-            <Button variant="outline" className="border-white text-[#004f32] hover:bg-white hover:text-[#004f32]">
+            <Button variant="outline" className="border-white text-white hover:bg-white hover:text-[#004f32]">
               Google Play
             </Button>
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 text-gray-300 py-12">
-        <div className="container max-w-5xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-            <div>
-              <h3 className="font-bold text-white mb-4">About Tripadvisor</h3>
-              <ul className="space-y-2">
-                <li><a href="#" className="hover:text-white">About Us</a></li>
-                <li><a href="#" className="hover:text-white">Press</a></li>
-                <li><a href="#" className="hover:text-white">Resources and Policies</a></li>
-                <li><a href="#" className="hover:text-white">Careers</a></li>
-                <li><a href="#" className="hover:text-white">Trust & Safety</a></li>
-                <li><a href="#" className="hover:text-white">Contact Us</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-bold text-white mb-4">Explore</h3>
-              <ul className="space-y-2">
-                <li><a href="#" className="hover:text-white">Write a Review</a></li>
-                <li><a href="#" className="hover:text-white">Add a Place</a></li>
-                <li><a href="#" className="hover:text-white">Join</a></li>
-                <li><a href="#" className="hover:text-white">Travelers' Choice</a></li>
-                <li><a href="#" className="hover:text-white">GreenLeaders</a></li>
-                <li><a href="#" className="hover:text-white">Help Center</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-bold text-white mb-4">Do Business With Us</h3>
-              <ul className="space-y-2">
-                <li><a href="#" className="hover:text-white">Owners</a></li>
-                <li><a href="#" className="hover:text-white">Business Advantage</a></li>
-                <li><a href="#" className="hover:text-white">Sponsored Placements</a></li>
-                <li><a href="#" className="hover:text-white">Advertise with Us</a></li>
-                <li><a href="#" className="hover:text-white">Access our Content API</a></li>
-                <li><a href="#" className="hover:text-white">Become an Affiliate</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-bold text-white mb-4">Download Our App</h3>
-              <p className="mb-4">Get the full experience and never miss out</p>
-              <div className="flex flex-col gap-4">
-                <a href="#" className="hover:text-white bg-black px-4 py-2 rounded inline-flex items-center">
-                  <span>App Store</span>
-                </a>
-                <a href="#" className="hover:text-white bg-black px-4 py-2 rounded inline-flex items-center">
-                  <span>Google Play</span>
-                </a>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-gray-700 pt-8 text-sm text-center">
-            <div className="flex justify-center gap-8 mb-4">
-              <a href="#" className="hover:text-white">Facebook</a>
-              <a href="#" className="hover:text-white">Twitter</a>
-              <a href="#" className="hover:text-white">Instagram</a>
-              <a href="#" className="hover:text-white">Pinterest</a>
-            </div>
-            <p>© {new Date().getFullYear()} Tripadvisor LLC All rights reserved.</p>
-            <div className="flex flex-wrap justify-center gap-4 mt-4">
-              <a href="#" className="hover:text-white">Terms of Use</a>
-              <a href="#" className="hover:text-white">Privacy Policy</a>
-              <a href="#" className="hover:text-white">Content Policy</a>
-              <a href="#" className="hover:text-white">Cookie Policy</a>
-              <a href="#" className="hover:text-white">Cookie Settings</a>
-              <a href="#" className="hover:text-white">Site Map</a>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+      
+    </Layout>
   );
 }

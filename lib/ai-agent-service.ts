@@ -238,7 +238,7 @@ export class AiAgentService {
     budget: BudgetBreakdown
   ): Promise<ItineraryDay[]> {
     try {
-      console.log("[[hotel is here]] :", hotel);
+      // console.log("[[hotel is here]] :", hotel);
       const prompt = itineraryGeneratorPrompt(tripInput, destination, hotel, budget);
       
       const response = await openai.chat.completions.create({
@@ -389,10 +389,11 @@ export class AiAgentService {
       const tripPlan: TripPlan = {
         destination: selectedDestination,
         flights: flights,
-        hotel: selectedHotel,
+        hotels: fetchedHotels.hotels,
         itinerary: itinerary,
         budget: budget,
-        activities: activities
+        activities: activities,
+        tripInput: tripInput
       };
       
       console.log("===== COMPLETE: Trip Plan Created =====");
@@ -404,6 +405,7 @@ export class AiAgentService {
       throw error;
     }
   }
+  
   // Generate a final summary of the trip
   async finalizeTripPlan(tripPlan: TripPlan): Promise<any> {
     try {

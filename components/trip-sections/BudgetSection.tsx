@@ -9,22 +9,58 @@ interface BudgetSectionProps {
 export default function BudgetSection({ tripPlan }: BudgetSectionProps) {
   const { budget } = tripPlan;
 
-  if (!budget) return null;
+  // Debug logging
+  console.log("Budget data:", JSON.stringify(budget, null, 2));
+  
+  if (!budget || !budget.mainPlan) return null;
 
   // Calculate percentages for donut chart
-  const total = budget.total;
+  const total = budget.mainPlan.total || 0;
   const categories = [
-    { name: 'Flights', value: budget.flights, color: 'bg-blue-500', percentage: Math.round((budget.flights / total) * 100) },
-    { name: 'Accommodation', value: budget.accommodation, color: 'bg-green-500', percentage: Math.round((budget.accommodation / total) * 100) },
-    { name: 'Activities', value: budget.activities, color: 'bg-purple-500', percentage: Math.round((budget.activities / total) * 100) },
-    { name: 'Food', value: budget.food, color: 'bg-amber-500', percentage: Math.round((budget.food / total) * 100) },
-    { name: 'Transportation', value: budget.transportation, color: 'bg-red-500', percentage: Math.round((budget.transportation / total) * 100) },
-    { name: 'Miscellaneous', value: budget.miscellaneous, color: 'bg-gray-500', percentage: Math.round((budget.miscellaneous / total) * 100) },
+    { name: 'Flights', value: budget.mainPlan.flights || 0, color: 'bg-blue-500', percentage: Math.round(((budget.mainPlan.flights || 0) / total) * 100) },
+    { name: 'Accommodation', value: budget.mainPlan.accommodation || 0, color: 'bg-green-500', percentage: Math.round(((budget.mainPlan.accommodation || 0) / total) * 100) },
+    { name: 'Activities', value: budget.mainPlan.activities || 0, color: 'bg-purple-500', percentage: Math.round(((budget.mainPlan.activities || 0) / total) * 100) },
+    { name: 'Food', value: budget.mainPlan.food || 0, color: 'bg-amber-500', percentage: Math.round(((budget.mainPlan.food || 0) / total) * 100) },
+    { name: 'Transportation', value: budget.mainPlan.transportation || 0, color: 'bg-red-500', percentage: Math.round(((budget.mainPlan.transportation || 0) / total) * 100) },
+    { name: 'Miscellaneous', value: budget.mainPlan.miscellaneous || 0, color: 'bg-gray-500', percentage: Math.round(((budget.mainPlan.miscellaneous || 0) / total) * 100) },
   ];
 
   // Sort by value for better visualization
   categories.sort((a, b) => b.value - a.value);
 
+  // Sample alternatives for testing
+  // const sampleAlternatives = [
+  //   {
+  //     name: "Budget-friendly option",
+  //     total: 45000,
+  //     breakdown: {
+  //       flights: 15000,
+  //       accommodation: 12000,
+  //       activities: 8000,
+  //       food: 5000,
+  //       transportation: 3000,
+  //       miscellaneous: 2000
+  //     }
+  //   },
+  //   {
+  //     name: "Premium option",
+  //     total: 75000,
+  //     breakdown: {
+  //       flights: 25000,
+  //       accommodation: 20000,
+  //       activities: 15000,
+  //       food: 8000,
+  //       transportation: 4000,
+  //       miscellaneous: 3000
+  //     }
+  //   }
+  // ];
+
+  // Use real alternatives if available, otherwise use sample data for testing
+  const alternatives = budget.alternatives && budget.alternatives.length > 0
+    ? budget.alternatives 
+    : [];
+  
   return (
     <Card>
       <CardContent className="p-6">
@@ -41,11 +77,11 @@ export default function BudgetSection({ tripPlan }: BudgetSectionProps) {
             <Card className="overflow-hidden shadow-md">
               <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-4">
                 <h3 className="text-lg font-medium mb-1">Total Budget</h3>
-                <p className="text-2xl font-bold">₹{budget.total.toLocaleString()}</p>
-                {budget.originalBudget && (
+                <p className="text-2xl font-bold">₹{budget.mainPlan.total?.toLocaleString() || '0'}</p>
+                {budget.mainPlan.originalBudget && (
                   <div className="flex items-center mt-2 text-sm">
-                    <span className="mr-1">Original Budget: ₹{budget.originalBudget.toLocaleString()}</span>
-                    {budget.total <= budget.originalBudget ? (
+                    <span className="mr-1">Original Budget: ₹{budget.mainPlan.originalBudget?.toLocaleString() || '0'}</span>
+                    {budget.mainPlan.total <= budget.mainPlan.originalBudget ? (
                       <TrendingDown size={16} className="text-green-200" />
                     ) : (
                       <TrendingUp size={16} className="text-red-200" />
@@ -65,35 +101,46 @@ export default function BudgetSection({ tripPlan }: BudgetSectionProps) {
                     </div>
                   </div>
                 ))}
-              </div>
-            </Card>
-
-            {budget.alternatives && budget.alternatives.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-lg font-medium mb-3">Alternative Options</h3>
-                <div className="space-y-4">
-                  {budget.alternatives.map((alt, index) => (
-                    <Card key={index} className="p-4">
-                      <h4 className="font-medium flex items-center">
-                        <DollarSign size={16} className="mr-1 text-emerald-500" />
-                        {alt.name}
-                      </h4>
-                      <p className="text-xl font-bold mb-2">₹{alt.total.toLocaleString()}</p>
-                      {alt.breakdown && (
-                        <div className="text-sm space-y-1 text-gray-600">
-                          {Object.entries(alt.breakdown).map(([key, value]) => (
-                            <div key={key} className="flex justify-between">
-                              <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
-                              <span>₹{(value as number).toLocaleString()}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </Card>
-                  ))}
+                {/* Total Cost Row */}
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-gray-700 font-bold">Total Cost</span>
+                    <span className="font-bold">₹{budget.mainPlan.total.toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
-            )}
+            </Card>
+            
+            {/* Alternative Options */}
+            <div className="mt-6">
+              <h3 className="text-lg font-medium mb-3">Alternative Options</h3>
+              <div className="space-y-4">
+                {alternatives.map((alt, index) => (
+                  <Card key={index} className="p-4">
+                    <h4 className="font-medium flex items-center">
+                      <DollarSign size={16} className="mr-1 text-emerald-500" />
+                      {alt.name}
+                    </h4>
+                    <p className="text-xl font-bold mb-2">₹{alt.total.toLocaleString()}</p>
+                    {alt.breakdown && (
+                      <div className="text-sm space-y-1 text-gray-600">
+                        {Object.entries(alt.breakdown).map(([key, value]) => (
+                          <div key={key} className="flex justify-between">
+                            <span>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                            <span>₹{(value as number).toLocaleString()}</span>
+                          </div>
+                        ))}
+                        {/* Alternative Total Row */}
+                        <div className="pt-2 mt-2 border-t border-gray-200 flex justify-between font-bold">
+                          <span>Total Cost</span>
+                          <span>₹{alt.total.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Budget Chart and Details */}
@@ -104,7 +151,7 @@ export default function BudgetSection({ tripPlan }: BudgetSectionProps) {
                 <PieChart size={256} className="text-gray-200" />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <span className="block text-3xl font-bold">₹{budget.total.toLocaleString()}</span>
+                    <span className="block text-3xl font-bold">₹{budget.mainPlan.total?.toLocaleString() || '0'}</span>
                     <span className="text-gray-500">Total Budget</span>
                   </div>
                 </div>

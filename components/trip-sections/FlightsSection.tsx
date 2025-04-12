@@ -37,8 +37,8 @@ export default function FlightsSection({ tripPlan, isPreview }: FlightsSectionPr
             <div className="p-4">
               <div className="flex justify-between items-center mb-2">
                 <div>
-                  <p className="font-bold text-lg">{flights.outbound.departure.time}</p>
-                  <p className="text-sm text-gray-600">{flights.outbound.departure.airport} ({flights.outbound.departure.code})</p>
+                  <p className="font-bold text-lg">{flights.outbound?.departure?.time || 'N/A'}</p>
+                  <p className="text-sm text-gray-600">{flights.outbound?.departure?.airport || 'N/A'} ({flights.outbound?.departure?.code || 'N/A'})</p>
                 </div>
                 <div className="flex-1 px-6 relative">
                   <div className="border-t border-dashed border-gray-300 w-full absolute top-1/2"></div>
@@ -46,36 +46,28 @@ export default function FlightsSection({ tripPlan, isPreview }: FlightsSectionPr
                   <div className="absolute right-0 top-1/2 w-2 h-2 rounded-full bg-gray-400 transform -translate-y-1/2"></div>
                   <p className="text-xs text-center mt-2 flex items-center justify-center">
                     <Clock size={12} className="mr-1" />
-                    {flights.outbound.duration}
+                    {flights.outbound?.duration || 'N/A'}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-lg">{flights.outbound.arrival.time}</p>
-                  <p className="text-sm text-gray-600">{flights.outbound.arrival.airport} ({flights.outbound.arrival.code})</p>
+                <div>
+                  <p className="font-bold text-lg">{flights.outbound?.arrival?.time || 'N/A'}</p>
+                  <p className="text-sm text-gray-600">{flights.outbound?.arrival?.airport || 'N/A'} ({flights.outbound?.arrival?.code || 'N/A'})</p>
                 </div>
               </div>
-
-              <div className="mt-4 pt-4 border-t flex justify-between text-sm">
+              
+              <div className="flex justify-between items-center text-sm text-gray-600">
                 <div>
-                  <p className="text-gray-500">Airline</p>
-                  <p>{flights.outbound.airline}</p>
+                  <p>Airline: {flights.outbound?.airline || 'N/A'}</p>
+                  <p>Flight: {flights.outbound?.flightNumber || 'N/A'}</p>
                 </div>
-                <div>
-                  <p className="text-gray-500">Flight #</p>
-                  <p>{flights.outbound.flightNumber || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Class</p>
-                  <p>{flights.outbound.class || 'Economy'}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Price</p>
-                  <p className="font-medium">₹{flights.outbound.price.toLocaleString()}</p>
+                <div className="text-right">
+                  <p>Class: {flights.outbound?.class || 'Economy'}</p>
+                  <p>Price: ₹{flights.outbound?.price?.toLocaleString() || '0'}</p>
                 </div>
               </div>
             </div>
           </div>
-
+          
           {/* Return Flight */}
           <div className="border rounded-lg overflow-hidden">
             <div className="bg-gray-50 px-4 py-2 border-b">
@@ -84,8 +76,8 @@ export default function FlightsSection({ tripPlan, isPreview }: FlightsSectionPr
             <div className="p-4">
               <div className="flex justify-between items-center mb-2">
                 <div>
-                  <p className="font-bold text-lg">{flights.return.departure.time}</p>
-                  <p className="text-sm text-gray-600">{flights.return.departure.airport} ({flights.return.departure.code})</p>
+                  <p className="font-bold text-lg">{flights.return?.departure?.time || 'N/A'}</p>
+                  <p className="text-sm text-gray-600">{flights.return?.departure?.airport || 'N/A'} ({flights.return?.departure?.code || 'N/A'})</p>
                 </div>
                 <div className="flex-1 px-6 relative">
                   <div className="border-t border-dashed border-gray-300 w-full absolute top-1/2"></div>
@@ -93,31 +85,23 @@ export default function FlightsSection({ tripPlan, isPreview }: FlightsSectionPr
                   <div className="absolute right-0 top-1/2 w-2 h-2 rounded-full bg-gray-400 transform -translate-y-1/2"></div>
                   <p className="text-xs text-center mt-2 flex items-center justify-center">
                     <Clock size={12} className="mr-1" />
-                    {flights.return.duration}
+                    {flights.return?.duration || 'N/A'}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-lg">{flights.return.arrival.time}</p>
-                  <p className="text-sm text-gray-600">{flights.return.arrival.airport} ({flights.return.arrival.code})</p>
+                <div>
+                  <p className="font-bold text-lg">{flights.return?.arrival?.time || 'N/A'}</p>
+                  <p className="text-sm text-gray-600">{flights.return?.arrival?.airport || 'N/A'} ({flights.return?.arrival?.code || 'N/A'})</p>
                 </div>
               </div>
-
-              <div className="mt-4 pt-4 border-t flex justify-between text-sm">
+              
+              <div className="flex justify-between items-center text-sm text-gray-600">
                 <div>
-                  <p className="text-gray-500">Airline</p>
-                  <p>{flights.return.airline}</p>
+                  <p>Airline: {flights.return?.airline || 'N/A'}</p>
+                  <p>Flight: {flights.return?.flightNumber || 'N/A'}</p>
                 </div>
-                <div>
-                  <p className="text-gray-500">Flight #</p>
-                  <p>{flights.return.flightNumber || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Class</p>
-                  <p>{flights.return.class || 'Economy'}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Price</p>
-                  <p className="font-medium">₹{flights.return.price.toLocaleString()}</p>
+                <div className="text-right">
+                  <p>Class: {flights.return?.class || 'Economy'}</p>
+                  <p>Price: ₹{flights.return?.price?.toLocaleString() || '0'}</p>
                 </div>
               </div>
             </div>

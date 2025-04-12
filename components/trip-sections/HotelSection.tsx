@@ -41,80 +41,68 @@ export default function HotelSection({ tripPlan, isPreview }: HotelSectionProps)
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-xl font-bold mb-1">{hotel.name}</h3>
+            <h3 className="text-xl font-bold mb-1">{hotel?.name || 'Hotel'}</h3>
             <div className="flex items-center mb-2">
               <div className="flex text-amber-400 mr-2">
-                {Array(hotel.stars).fill(0).map((_, i) => (
+                {Array(hotel?.stars || 0).fill(0).map((_, i) => (
                   <Star key={i} size={16} fill="currentColor" />
                 ))}
               </div>
-              <span className="text-sm text-gray-500">({hotel.reviews} reviews)</span>
+              <span className="text-sm text-gray-600">{hotel?.reviews || 0} reviews</span>
+            </div>
+            <p className="text-gray-600 mb-4">{hotel?.description || 'No description available'}</p>
+            
+            <div className="flex items-center text-sm text-gray-600 mb-4">
+              <MapPin size={16} className="mr-1.5" />
+              <span>{hotel?.location || 'Location not specified'}</span>
             </div>
             
-            <div className="flex items-center text-gray-600 mb-4">
-              <MapPin size={16} className="mr-1" />
-              <span>{hotel.location}</span>
+            <div className="mb-4">
+              <h4 className="font-medium mb-2">Amenities</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {hotel?.amenities?.map((amenity, index) => (
+                  <div key={index} className="flex items-center text-sm">
+                    <Check size={14} className="text-green-500 mr-1.5" />
+                    <span>{amenity}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            <p className="text-gray-700 mb-4">{hotel.description}</p>
-
-            {!isPreview && (
-              <>
-                <h4 className="font-medium text-lg mb-2">Amenities</h4>
-                <div className="grid grid-cols-2 gap-2 mb-6">
-                  {hotel.amenities?.map((amenity, index) => (
-                    <div key={index} className="flex items-center">
-                      <Check size={16} className="text-green-500 mr-2" />
-                      <span>{amenity}</span>
-                    </div>
+            
+            <div className="border-t pt-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-medium">Price per night</span>
+                <span className="font-bold">₹{hotel?.pricePerNight?.toLocaleString() || '0'}</span>
+              </div>
+              <div className="flex justify-between items-center mb-4">
+                <span className="font-medium">Total for {nights} nights</span>
+                <span className="font-bold">₹{(hotel?.pricePerNight || 0) * nights}</span>
+              </div>
+            </div>
+          </div>
+          
+          {hotel?.imageUrls && hotel.imageUrls.length > 0 && (
+            <div className="relative h-64 rounded-lg overflow-hidden">
+              <img 
+                src={hotel.imageUrls[activeImageIndex]} 
+                alt={hotel.name} 
+                className="w-full h-full object-cover"
+              />
+              {hotel.imageUrls.length > 1 && (
+                <div className="absolute bottom-2 left-2 right-2 flex justify-center space-x-1">
+                  {hotel.imageUrls.map((_, index) => (
+                    <button
+                      key={index}
+                      className={`w-2 h-2 rounded-full ${
+                        index === activeImageIndex ? 'bg-white' : 'bg-white/50'
+                      }`}
+                      onClick={() => setActiveImageIndex(index)}
+                    />
                   ))}
                 </div>
-              </>
-            )}
-
-            <div className="flex justify-between items-center border-t pt-4">
-              <div>
-                <p className="text-gray-500">Price per night</p>
-                <p className="font-bold text-xl">₹{hotel.pricePerNight.toLocaleString()}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-gray-500">Total for {nights} nights</p>
-                <p className="font-bold text-xl">₹{(hotel.pricePerNight * nights).toLocaleString()}</p>
-              </div>
+              )}
             </div>
-          </div>
-
-          <div className="space-y-2">
-            {hotel.imageUrls && hotel.imageUrls.length > 0 ? (
-              <>
-                <div className="relative rounded-lg overflow-hidden h-48 md:h-64">
-                  <img 
-                    src={hotel.imageUrls[activeImageIndex]} 
-                    alt={hotel.name} 
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                </div>
-                
-                {!isPreview && hotel.imageUrls.length > 1 && (
-                  <div className="grid grid-cols-4 gap-2">
-                    {hotel.imageUrls.map((url, index) => (
-                      <div 
-                        key={index}
-                        className={`cursor-pointer rounded-md overflow-hidden h-16 border-2 ${index === activeImageIndex ? 'border-blue-500' : 'border-transparent'}`}
-                        onClick={() => setActiveImageIndex(index)}
-                      >
-                        <img src={url} alt={`${hotel.name} ${index+1}`} className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="bg-gray-100 rounded-lg flex items-center justify-center h-48 md:h-64">
-                <Building size={48} className="text-gray-400" />
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>

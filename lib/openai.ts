@@ -12,4 +12,4 @@ export const getEmbedding = async (text: string): Promise<number[]> => {
   });
   
   return response.data[0].embedding;
-}; 
+};

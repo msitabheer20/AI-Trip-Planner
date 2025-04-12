@@ -84,6 +84,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
       }
       
       const data = await response.json();
+      // console.log("HERE IS THE DATA OF DESTINATIONS: ", data);
       setDestinations(data.destinations);
       
       // Auto-select the first destination if available
@@ -316,19 +317,29 @@ export function TripProvider({ children }: { children: ReactNode }) {
       }
       
       // Update all state with the complete trip plan
+      console.log("RECEIVED PLAN DATA:", data.tripPlan);
+      
+      // First set destinations data to make sure it's available immediately
+      setDestinations(data.tripPlan.destination ? [data.tripPlan.destination] : []);
+      setHotels(data.tripPlan.hotels ? data.tripPlan.hotels : []);
+      
+      // Then update the rest of the state
       setTripPlan(data.tripPlan);
       setSelectedDestination(data.tripPlan.destination);
       setFlights(data.tripPlan.flights);
-      setSelectedHotel(data.tripPlan.hotel);
+      setSelectedHotel(data.tripPlan.hotels[0]);
       setBudget(data.tripPlan.budget);
       setItinerary(data.tripPlan.itinerary);
       setActivities(data.tripPlan.activities);
       
+      // Make sure state is updated before changing step
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Move to the next step
-      setStep(3);
+      setStep(2); // Now set to step 2 instead of 3, to show the planning results first
       
       // Return the trip plan data
-      console.log("HERE IS THE TRIP PLAN: ", data.tripPlan);
+      console.log("TRIP PLAN DATA PROCESSED AND AVAILABLE");
       return data.tripPlan;
     
     } catch (err) {

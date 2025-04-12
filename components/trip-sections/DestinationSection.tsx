@@ -24,21 +24,21 @@ export default function DestinationSection({ tripPlan, isPreview }: DestinationS
           </h2>
           {isPreview && (
             <Badge variant="outline" className="bg-gray-50">
-              {destination.matchPercentage}% Match
+              {destination?.matchPercentage || 0}% Match
             </Badge>
           )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-xl font-bold mb-1">{destination.name}, {destination.country}</h3>
-            <p className="text-gray-600 mb-4">{destination.description}</p>
+            <h3 className="text-xl font-bold mb-1">{destination?.name || 'Destination'}, {destination?.country || 'Country'}</h3>
+            <p className="text-gray-600 mb-4">{destination?.description || 'No description available'}</p>
             
             {!isPreview && (
               <>
                 <h4 className="font-medium text-lg mb-2">Highlights</h4>
                 <ul className="space-y-1 pl-5 list-disc mb-6">
-                  {destination.highlights?.map((highlight, index) => (
+                  {destination?.highlights?.map((highlight, index) => (
                     <li key={index}>{highlight}</li>
                   ))}
                 </ul>
@@ -46,14 +46,14 @@ export default function DestinationSection({ tripPlan, isPreview }: DestinationS
                 <div className="flex items-center text-sm text-gray-500 space-x-4">
                   <div className="flex items-center">
                     <Globe size={16} className="mr-1.5" />
-                    <span>{destination.country}</span>
+                    <span>{destination?.country || 'Country'}</span>
                   </div>
-                  {destination.language && (
+                  {destination?.language && (
                     <div>
                       <span className="font-medium">Language:</span> {destination.language}
                     </div>
                   )}
-                  {destination.currency && (
+                  {destination?.currency && (
                     <div>
                       <span className="font-medium">Currency:</span> {destination.currency}
                     </div>
@@ -62,7 +62,7 @@ export default function DestinationSection({ tripPlan, isPreview }: DestinationS
               </>
             )}
             
-            {isPreview && destination.highlights && destination.highlights.length > 0 && (
+            {isPreview && destination?.highlights && destination.highlights.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {destination.highlights.slice(0, 3).map((highlight, index) => (
                   <Badge key={index} className="bg-blue-50 text-blue-700 hover:bg-blue-100">
@@ -76,7 +76,7 @@ export default function DestinationSection({ tripPlan, isPreview }: DestinationS
             )}
           </div>
           
-          {destination.imageUrl && (
+          {destination?.imageUrl && (
             <div className="relative h-48 md:h-full rounded-lg overflow-hidden">
               <img 
                 src={destination.imageUrl} 

@@ -50,10 +50,10 @@ export default function ActivitiesSection({ tripPlan, isPreview }: ActivitiesSec
                 Recommended
               </button>
               <button 
-                className={`px-3 py-1 text-sm ${filter === 'optional' ? 'bg-gray-100 font-medium' : 'bg-white'}`}
-                onClick={() => setFilter('optional')}
+                className={`px-3 py-1 text-sm ${filter === 'other' ? 'bg-gray-100 font-medium' : 'bg-white'}`}
+                onClick={() => setFilter('other')}
               >
-                Optional
+                Other
               </button>
             </div>
           )}
@@ -61,9 +61,9 @@ export default function ActivitiesSection({ tripPlan, isPreview }: ActivitiesSec
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredActivities.map((activity, index) => (
-            <Card key={index} className="overflow-hidden hover:shadow-md transition-shadow">
+            <div key={index} className="border rounded-lg overflow-hidden">
               {activity.imageUrl && (
-                <div className="h-36 overflow-hidden">
+                <div className="h-40 overflow-hidden">
                   <img 
                     src={activity.imageUrl} 
                     alt={activity.name} 
@@ -71,34 +71,40 @@ export default function ActivitiesSection({ tripPlan, isPreview }: ActivitiesSec
                   />
                 </div>
               )}
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-bold">{activity.name}</h3>
-                  <Badge className={`${activity.recommended ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                    {activity.recommended ? 'Recommended' : 'Optional'}
-                  </Badge>
+              <div className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-bold">{activity.name || 'Activity'}</h3>
+                  {activity.recommended && (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      <Star size={12} className="mr-1" />
+                      Recommended
+                    </Badge>
+                  )}
                 </div>
+                <p className="text-sm text-gray-600 mb-3">{activity.description || 'No description available'}</p>
                 
-                <p className="text-gray-600 text-sm mt-1 mb-3 line-clamp-2">{activity.description}</p>
-                
-                <div className="flex flex-wrap gap-3 text-sm text-gray-500">
-                  <div className="flex items-center">
-                    <DollarSign size={14} className="mr-1" />
-                    ₹{activity.price.toLocaleString()}
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <Clock size={14} className="mr-1" />
-                    {activity.duration}
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <MapPin size={14} className="mr-1" />
-                    {activity.location}
-                  </div>
+                <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                  {activity.duration && (
+                    <div className="flex items-center">
+                      <Clock size={12} className="mr-1" />
+                      {activity.duration}
+                    </div>
+                  )}
+                  {activity.price && (
+                    <div className="flex items-center">
+                      <DollarSign size={12} className="mr-1" />
+                      ₹{activity.price.toLocaleString()}
+                    </div>
+                  )}
+                  {activity.location && (
+                    <div className="flex items-center">
+                      <MapPin size={12} className="mr-1" />
+                      {activity.location}
+                    </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
 

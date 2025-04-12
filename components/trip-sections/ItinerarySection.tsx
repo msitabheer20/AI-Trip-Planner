@@ -23,6 +23,8 @@ export default function ItinerarySection({ tripPlan, isPreview }: ItinerarySecti
   };
 
   const getActivityIcon = (activity: any) => {
+    if (!activity || !activity.description) return <Sun size={16} className="text-teal-500" />;
+    
     const description = activity.description.toLowerCase();
     
     if (description.includes('breakfast') || description.includes('coffee')) {
@@ -54,58 +56,46 @@ export default function ItinerarySection({ tripPlan, isPreview }: ItinerarySecti
         </h2>
 
         <div className="space-y-4">
-          {displayItinerary.map((day) => (
-            <div key={day.day} className="border rounded-lg overflow-hidden">
+          {displayItinerary.map((day, index) => (
+            <div key={index} className="border rounded-lg overflow-hidden">
               <div 
-                className={`${expandedDay === day.day ? 'bg-indigo-50' : 'bg-gray-50'} px-4 py-3 flex justify-between items-center cursor-pointer border-b`}
+                className={`${expandedDay === day.day ? 'bg-indigo-50' : 'bg-gray-50'} px-4 py-2 flex justify-between items-center cursor-pointer`}
                 onClick={() => toggleDay(day.day)}
               >
-                <div>
-                  <h3 className="font-bold">
-                    Day {day.day}: {day.title}
-                  </h3>
-                  <p className="text-sm text-gray-500">{day.date}</p>
-                </div>
-                <div className="text-gray-400">
-                  {expandedDay === day.day ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  )}
-                </div>
+                <h3 className="font-medium">Day {day.day}: {day.title || 'Day ' + day.day}</h3>
+                <div className="text-sm text-gray-500">{day.date || 'Date not specified'}</div>
               </div>
               
-              {(expandedDay === day.day || (isPreview && day.day === 1)) && (
-                <div className="p-4 space-y-4">
-                  {day.activities.map((activity, index) => (
-                    <div key={index} className="relative pl-8 py-2">
-                      <div className="absolute left-0 top-3">
+              {expandedDay === day.day && (
+                <div className="p-4 space-y-3">
+                  {day.activities?.map((activity, actIndex) => (
+                    <div key={actIndex} className="flex items-start">
+                      <div className="mr-3 mt-1">
                         {getActivityIcon(activity)}
                       </div>
-                      <div>
-                        <div className="flex items-center">
-                          <div className="font-medium mr-2">{activity.time}</div>
-                          <div>{activity.description}</div>
-                          {activity.cost > 0 && (
-                            <div className="ml-2 text-sm text-gray-500">
-                              ₹{activity.cost.toLocaleString()}
-                            </div>
-                          )}
-                        </div>
+                      <div className="flex-1">
+                        {activity.time && (
+                          <div className="text-sm text-gray-500 mb-1 flex items-center">
+                            <Clock size={14} className="mr-1" />
+                            {activity.time}
+                          </div>
+                        )}
+                        <p>{activity.description || 'No description available'}</p>
                         {activity.location && (
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
+                          <div className="text-sm text-gray-600 mt-1 flex items-center">
                             <MapPin size={14} className="mr-1" />
                             {activity.location}
                           </div>
                         )}
+                        {activity.cost && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            Cost: ₹{activity.cost.toLocaleString()}
+                          </div>
+                        )}
                         {activity.notes && (
-                          <div className="text-sm text-gray-500 flex items-center mt-1">
-                            <Info size={14} className="mr-1" />
-                            {activity.notes}
+                          <div className="text-sm text-gray-600 mt-1 flex items-start">
+                            <Info size={14} className="mr-1 mt-0.5" />
+                            <span>{activity.notes}</span>
                           </div>
                         )}
                       </div>

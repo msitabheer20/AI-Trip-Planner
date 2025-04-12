@@ -60,14 +60,16 @@ export interface Activity {
 }
 
 export interface BudgetBreakdown {
-  flights: number;
-  accommodation: number;
-  activities: number;
-  food: number;
-  transportation: number;
-  miscellaneous: number;
-  total: number;
-  originalBudget: number;
+  mainPlan: {
+    flights: number;
+    accommodation: number;
+    activities: number;
+    food: number;
+    transportation: number;
+    miscellaneous: number;
+    total: number;
+    originalBudget: number;
+  };
   alternatives?: {
     name: string;
     total: number;
@@ -101,8 +103,9 @@ export interface TripPlan {
     outbound: Flight;
     return: Flight;
   };
-  hotel: Hotel;
+  hotels: Hotel[];
   itinerary: ItineraryDay[];
   budget: BudgetBreakdown;
   activities: Activity[];
+  tripInput?: TripInput;
 } 
