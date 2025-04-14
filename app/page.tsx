@@ -163,7 +163,7 @@ export default function Home() {
               <h2 className="text-3xl font-bold mb-3 text-white">Plan your kind of trip</h2>
               <p className="text-lg text-white mb-6">
                 Get custom recs for all the things<br />
-                you're into with AI trip builder
+                you&apos;re into with AI trip builder
               </p>
               <Button className="bg-white hover:bg-gray-100 text-[#0066cc] px-8 py-6 rounded-full text-lg font-medium shadow-md transition-transform hover:scale-105 border-none flex items-center gap-2" onClick={() => window.location.href = "/trip-planner"}>
                 <img 
@@ -317,7 +317,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row gap-8 mb-8">
             <div className="md:w-1/2 flex flex-col justify-center">
               <h2 className="text-2xl md:text-3xl font-bold mb-2">Top destinations for your next holiday</h2>
-              <p className="text-sm text-gray-500 mb-6">Here's where your fellow travellers are headed</p>
+              <p className="text-sm text-gray-500 mb-6">Here&apos;s where your fellow travellers are headed</p>
               <div className="hidden md:block">
                 <Button className="bg-[#34e0a1] hover:bg-[#2bc889] text-black px-6 py-2 rounded-full font-medium">
                   Explore destinations

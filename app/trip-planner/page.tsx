@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-// import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Select,
@@ -24,7 +23,6 @@ import Layout from '@/components/layout/Layout';
 // Removed the static popularDestinations array since we're using an API
 
 export default function TripPlanner() {
-  // const router = useRouter();
   const {
     loading,
     error,
