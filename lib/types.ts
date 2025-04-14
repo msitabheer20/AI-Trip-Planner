@@ -70,7 +70,8 @@ export interface BudgetBreakdown {
     total: number;
     originalBudget: number;
   };
-  alternatives?: {
+  
+  alternativePlans?: {
     name: string;
     total: number;
     breakdown: {

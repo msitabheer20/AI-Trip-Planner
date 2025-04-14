@@ -46,7 +46,7 @@ export default function TripPlanDisplay({ tripPlan, onBack }: TripPlanDisplayPro
   );
 
   return (
-    <Layout>
+    <div>
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-[#34e0a1] to-[#00aa6c] text-white">
         <div className="container max-w-5xl mx-auto px-4 py-12">
@@ -192,6 +192,6 @@ export default function TripPlanDisplay({ tripPlan, onBack }: TripPlanDisplayPro
           </div>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 } 

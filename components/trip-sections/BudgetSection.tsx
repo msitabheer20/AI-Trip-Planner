@@ -57,8 +57,8 @@ export default function BudgetSection({ tripPlan }: BudgetSectionProps) {
   // ];
 
   // Use real alternatives if available, otherwise use sample data for testing
-  const alternatives = budget.alternatives && budget.alternatives.length > 0
-    ? budget.alternatives 
+  const alternatives = budget.alternativePlans && budget.alternativePlans.length > 0
+    ? budget.alternativePlans 
     : [];
   
   return (

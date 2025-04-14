@@ -195,6 +195,45 @@ Considerations:
 2. Ensure the main plan respects the user's original budget when possible
 3. For alternatives, clearly identify what is being changed (e.g., lower-tier hotel, fewer activities)
 
+Example format:
+"mainPlan": {
+    "flights": 56000,
+    "accommodation": 110000,
+    "activities": 15000,
+    "food": 10000,
+    "transportation": 5000,
+    "miscellaneous": 5000,
+    "total": 190000,
+    "originalBudget": 110000
+  },
+  "alternativePlans": [
+    {
+      "name": "Budget-friendly option",
+      "total": 107000,
+      "breakdown": {
+        "flights": 56000,
+        "accommodation": 44000,
+        "activities": 3000,
+        "food": 3000,
+        "transportation": 2000,
+        "miscellaneous": 1000
+      }
+    },
+    {
+      "name": "Premium option",
+      "total": 230000,
+      "breakdown": {
+        "flights": 56000,
+        "accommodation": 165000,
+        "activities": 25000,
+        "food": 20000,
+        "transportation": 10000,
+        "miscellaneous": 10000
+      }
+    }
+  ]
+}
+
 Return only valid JSON with no explanation or additional text.
 `;
 

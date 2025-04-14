@@ -10,10 +10,12 @@ interface HotelSectionProps {
 }
 
 export default function HotelSection({ tripPlan, isPreview }: HotelSectionProps) {
-  const { hotel } = tripPlan;
+  const { hotels } = tripPlan;
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
-  if (!hotel) return null;
+  if (!hotels) return null;
+
+  const selectedHotel = hotels[0];
 
   const calculateTripDuration = (startDate: string, endDate: string) => {
     if (!startDate || !endDate) return 0;
@@ -41,26 +43,26 @@ export default function HotelSection({ tripPlan, isPreview }: HotelSectionProps)
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-xl font-bold mb-1">{hotel?.name || 'Hotel'}</h3>
+            <h3 className="text-xl font-bold mb-1">{selectedHotel?.name || 'Hotel'}</h3>
             <div className="flex items-center mb-2">
               <div className="flex text-amber-400 mr-2">
-                {Array(hotel?.stars || 0).fill(0).map((_, i) => (
+                {Array(selectedHotel?.stars || 0).fill(0).map((_, i) => (
                   <Star key={i} size={16} fill="currentColor" />
                 ))}
               </div>
-              <span className="text-sm text-gray-600">{hotel?.reviews || 0} reviews</span>
+              <span className="text-sm text-gray-600">{selectedHotel?.reviews || 0} reviews</span>
             </div>
-            <p className="text-gray-600 mb-4">{hotel?.description || 'No description available'}</p>
+            <p className="text-gray-600 mb-4">{selectedHotel?.description || 'No description available'}</p>
             
             <div className="flex items-center text-sm text-gray-600 mb-4">
               <MapPin size={16} className="mr-1.5" />
-              <span>{hotel?.location || 'Location not specified'}</span>
+              <span>{selectedHotel?.location || 'Location not specified'}</span>
             </div>
             
             <div className="mb-4">
               <h4 className="font-medium mb-2">Amenities</h4>
               <div className="grid grid-cols-2 gap-2">
-                {hotel?.amenities?.map((amenity, index) => (
+                {selectedHotel?.amenities?.map((amenity, index) => (
                   <div key={index} className="flex items-center text-sm">
                     <Check size={14} className="text-green-500 mr-1.5" />
                     <span>{amenity}</span>
@@ -72,25 +74,25 @@ export default function HotelSection({ tripPlan, isPreview }: HotelSectionProps)
             <div className="border-t pt-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-medium">Price per night</span>
-                <span className="font-bold">₹{hotel?.pricePerNight?.toLocaleString() || '0'}</span>
+                <span className="font-bold">₹{selectedHotel?.pricePerNight?.toLocaleString() || '0'}</span>
               </div>
               <div className="flex justify-between items-center mb-4">
                 <span className="font-medium">Total for {nights} nights</span>
-                <span className="font-bold">₹{(hotel?.pricePerNight || 0) * nights}</span>
+                <span className="font-bold">₹{(selectedHotel?.pricePerNight || 0) * nights}</span>
               </div>
             </div>
           </div>
           
-          {hotel?.imageUrls && hotel.imageUrls.length > 0 && (
+          {selectedHotel?.imageUrls && selectedHotel.imageUrls.length > 0 && (
             <div className="relative h-64 rounded-lg overflow-hidden">
               <img 
-                src={hotel.imageUrls[activeImageIndex]} 
-                alt={hotel.name} 
+                src={selectedHotel.imageUrls[activeImageIndex]} 
+                alt={selectedHotel.name} 
                 className="w-full h-full object-cover"
               />
-              {hotel.imageUrls.length > 1 && (
+              {selectedHotel.imageUrls.length > 1 && (
                 <div className="absolute bottom-2 left-2 right-2 flex justify-center space-x-1">
-                  {hotel.imageUrls.map((_, index) => (
+                  {selectedHotel.imageUrls.map((_, index) => (
                     <button
                       key={index}
                       className={`w-2 h-2 rounded-full ${

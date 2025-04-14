@@ -234,10 +234,6 @@ export default function TripPlanner() {
   return (
     <Layout>
       {/* Background decor */}
-      <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
-        <div className="absolute -top-20 -right-20 w-96 h-96 bg-gradient-to-br from-[#edfcf5] to-[#c5f9e1] rounded-full opacity-50 blur-3xl"></div>
-        <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-gradient-to-tr from-[#edfcf5] to-[#c5f9e1] rounded-full opacity-50 blur-3xl"></div>
-      </div>
 
       {/* Main content */}
       <div className="container max-w-5xl mx-auto px-4 py-8 relative z-10">

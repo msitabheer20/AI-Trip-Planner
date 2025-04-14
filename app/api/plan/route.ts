@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json(
       { 
-        error: 'Failed to create trip plan', 
+        error: 'Failed to create trip plan',
         message: errorMessage,
         details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : null) : null
       },
