@@ -24,7 +24,7 @@ export default function Footer() {
               <li><Link href="#" className="hover:text-white">Write a Review</Link></li>
               <li><Link href="#" className="hover:text-white">Add a Place</Link></li>
               <li><Link href="#" className="hover:text-white">Join</Link></li>
-              <li><Link href="#" className="hover:text-white">Travelers' Choice</Link></li>
+              <li><Link href="#" className="hover:text-white">Travelers&apos; Choice</Link></li>
               <li><Link href="#" className="hover:text-white">GreenLeaders</Link></li>
               <li><Link href="#" className="hover:text-white">Help Center</Link></li>
             </ul>

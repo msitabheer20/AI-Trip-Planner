@@ -9,7 +9,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 // import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
-import { useRouter } from 'next/navigation';
 import { 
   Select,
   SelectContent,
@@ -25,7 +24,7 @@ import Layout from '@/components/layout/Layout';
 // Removed the static popularDestinations array since we're using an API
 
 export default function TripPlanner() {
-  const router = useRouter();
+  // const router = useRouter();
   const {
     loading,
     error,
@@ -729,7 +728,7 @@ const DestinationResult = ({ detailed }: { detailed: boolean }) => {
             </h4>
             <p className="text-sm">
               Based on your preferences for {destinations[0]?.matchPercentage}% match with {destinations[0]?.name}, 
-              I've selected these destinations considering your budget, travel dates, and interests. 
+              I&apos;ve selected these destinations considering your budget, travel dates, and interests. 
               Each offers activities matching your {destinations[0]?.highlights?.join(', ')} interests.
             </p>
           </div>
@@ -895,7 +894,7 @@ const FlightResult = ({ detailed }: { detailed: boolean }) => {
             Agent Reasoning
           </h4>
         <p className="text-sm">
-            I've selected these flights based on your budget constraints and travel dates. 
+            I&apos;ve selected these flights based on your budget constraints and travel dates. 
             {flights.outbound.airline} offers the best value with direct flights in both directions. 
             Morning departure for the outbound flight allows for a full day at the destination on arrival, 
             while the evening return maximizes your time on the last day.
@@ -1108,7 +1107,7 @@ const HotelResult = ({ detailed }: { detailed: boolean }) => {
               Agent Reasoning
             </h4>
             <p className="text-sm">
-              I've selected {selectedHotel.name} as your primary option because it matches your preference for 
+              I&apos;ve selected {selectedHotel.name} as your primary option because it matches your preference for 
               {selectedHotel.location.toLowerCase().includes('beach') ? ' beachfront location' : ' convenient location'} and 
               {selectedHotel.amenities.some(a => a.toLowerCase().includes('spa')) ? ' wellness facilities' : ' quality amenities'}. 
               The resort offers exceptional value given your preferences and trip type.
@@ -1281,7 +1280,7 @@ const BudgetResult = ({ detailed }: { detailed: boolean }) => {
                 Agent Reasoning
               </h4>
           <p className="text-sm">
-            I've analyzed your preferences and the destination costs to provide the most optimized trip. 
+            I&apos;ve analyzed your preferences and the destination costs to provide the most optimized trip. 
                 {budget?.mainPlan?.total > budget?.mainPlan?.originalBudget ?
                   ` The current plan exceeds your budget primarily due to the accommodation and premium activities.` : 
                   ` The current plan fits within your budget while maintaining quality experiences.`
@@ -1460,7 +1459,7 @@ const ItineraryPreview = ({ detailed }: { detailed: boolean }) => {
             Agent Reasoning
           </h4>
           <p className="text-sm">
-            I've designed this itinerary to balance beach activities, cultural experiences, and adventure elements 
+            I&apos;ve designed this itinerary to balance beach activities, cultural experiences, and adventure elements 
             based on your preferences. The schedule provides:
           </p>
           <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1515,7 +1514,7 @@ const ItineraryPreview = ({ detailed }: { detailed: boolean }) => {
             </div>
           </div>
           <p className="text-sm mt-4">
-            I've included free time for spontaneous activities and relaxation. Each day includes at least one 
+            I&apos;ve included free time for spontaneous activities and relaxation. Each day includes at least one 
             highlight activity while avoiding overscheduling.
           </p>
         </div>
