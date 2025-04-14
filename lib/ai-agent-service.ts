@@ -1,5 +1,5 @@
 import { openai } from './openai';
-import { TripInput, TripPlan, Destination, Flight, Hotel, BudgetBreakdown, ItineraryDay, Activity } from './types';
+import { TripInput, TripPlan, Destination, Flight, BudgetBreakdown, ItineraryDay, Activity } from './types';
 import {
   destinationFinderPrompt,
   flightBookingPrompt,

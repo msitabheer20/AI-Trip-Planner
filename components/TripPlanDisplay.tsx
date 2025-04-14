@@ -2,19 +2,16 @@
 
 import { useState } from 'react';
 import { TripPlan } from '@/lib/types';
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowLeft, Star, MapPin, Calendar, Clock, Check, ChevronDown, ChevronUp } from 'lucide-react';
-import Layout from './layout/Layout';
+import { ArrowLeft, Check } from 'lucide-react';
 
 import DestinationSection from './trip-sections/DestinationSection';
 import FlightsSection from './trip-sections/FlightsSection';
 import HotelSection from './trip-sections/HotelSection';
 import BudgetSection from './trip-sections/BudgetSection';
 import ItinerarySection from './trip-sections/ItinerarySection';
-import ActivitiesSection from './trip-sections/ActivitiesSection';
 
 interface TripPlanDisplayProps {
   tripPlan: TripPlan;
@@ -194,4 +191,4 @@ export default function TripPlanDisplay({ tripPlan, onBack }: TripPlanDisplayPro
       </div>
     </div>
   );
-} 
+}

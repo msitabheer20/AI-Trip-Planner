@@ -13,6 +13,8 @@ export interface Destination {
   country: string;
   description: string;
   matchPercentage: number;
+  language?: string,
+  currency?: string,
   imageUrl?: string;
   highlights?: string[];
 }
@@ -70,7 +72,7 @@ export interface BudgetBreakdown {
     total: number;
     originalBudget: number;
   };
-  
+
   alternativePlans?: {
     name: string;
     total: number;

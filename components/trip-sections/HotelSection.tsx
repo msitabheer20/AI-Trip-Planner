@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { TripPlan } from '@/lib/types';
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Building, Star, MapPin, Wifi, Coffee, Check } from 'lucide-react';
+import { Building, Star, MapPin, Check } from 'lucide-react';
 
 interface HotelSectionProps {
   tripPlan: TripPlan;

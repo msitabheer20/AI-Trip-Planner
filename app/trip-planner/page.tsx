@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from 'react';
-import { Star, ArrowLeft, Map, Plane, Hotel, BarChart, Calendar, MapPin, X, Check, Loader2 } from 'lucide-react';
+import { Star, ArrowLeft, Map, Plane, Hotel, BarChart, Calendar, MapPin, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1192,14 +1192,14 @@ const BudgetResult = ({ detailed }: { detailed: boolean }) => {
             </p>
             <p className="text-sm text-amber-700 mb-2">Consider these optimizations:</p>
             <ul className="space-y-2">
-              {budget?.alternatives && budget?.alternatives?.length > 0 && budget?.alternatives[0]?.total < budget?.mainPlan?.total && (
+              {budget?.alternativePlans && budget?.alternativePlans?.length > 0 && budget?.alternativePlans[0]?.total < budget?.mainPlan?.total && (
                 <li className="flex items-start gap-2 text-sm text-amber-800">
                   <div className="mt-1 min-w-4">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
                   </div>
-                  <span>Choose a {budget.alternatives[0].name || 'more economical option'} (saves ~₹{(budget.mainPlan.total - budget.alternatives[0].total).toLocaleString()})</span>
+                  <span>Choose a {budget.alternativePlans[0].name || 'more economical option'} (saves ~₹{(budget.mainPlan.total - budget.alternativePlans[0].total).toLocaleString()})</span>
                 </li>
               )}
               <li className="flex items-start gap-2 text-sm text-amber-800">
@@ -1268,7 +1268,7 @@ const BudgetResult = ({ detailed }: { detailed: boolean }) => {
           </div>
         </div>
         
-          {budget?.alternatives && budget?.alternatives?.length > 0 && (
+          {budget?.alternativePlans && budget?.alternativePlans?.length > 0 && (
             <div className="mt-6 p-5 bg-[#edfcf5] rounded-xl border border-[#d0f5e6]">
               <h4 className="font-medium mb-2 flex items-center gap-2">
                 <div className="p-1 bg-[#34e0a1] rounded-full">
@@ -1290,7 +1290,7 @@ const BudgetResult = ({ detailed }: { detailed: boolean }) => {
               </p>
               
               <div className="mt-4 space-y-3">
-                {budget?.alternatives?.map((alt, index) => (
+                {budget?.alternativePlans?.map((alt, index) => (
                   <div key={index} className="bg-white p-3 rounded-lg border border-gray-100">
                     <p className="text-sm font-medium flex justify-between items-center">
                       <span>{alt.name}</span>

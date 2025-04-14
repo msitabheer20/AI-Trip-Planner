@@ -1,6 +1,6 @@
 import { TripPlan } from '@/lib/types';
 import { Card, CardContent } from "@/components/ui/card";
-import { Plane, ArrowRight, Clock } from 'lucide-react';
+import { Plane, Clock } from 'lucide-react';
 
 interface FlightsSectionProps {
   tripPlan: TripPlan;

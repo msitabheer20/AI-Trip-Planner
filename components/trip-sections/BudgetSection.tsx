@@ -28,33 +28,7 @@ export default function BudgetSection({ tripPlan }: BudgetSectionProps) {
   // Sort by value for better visualization
   categories.sort((a, b) => b.value - a.value);
 
-  // Sample alternatives for testing
-  // const sampleAlternatives = [
-  //   {
-  //     name: "Budget-friendly option",
-  //     total: 45000,
-  //     breakdown: {
-  //       flights: 15000,
-  //       accommodation: 12000,
-  //       activities: 8000,
-  //       food: 5000,
-  //       transportation: 3000,
-  //       miscellaneous: 2000
-  //     }
-  //   },
-  //   {
-  //     name: "Premium option",
-  //     total: 75000,
-  //     breakdown: {
-  //       flights: 25000,
-  //       accommodation: 20000,
-  //       activities: 15000,
-  //       food: 8000,
-  //       transportation: 4000,
-  //       miscellaneous: 3000
-  //     }
-  //   }
-  // ];
+  
 
   // Use real alternatives if available, otherwise use sample data for testing
   const alternatives = budget.alternativePlans && budget.alternativePlans.length > 0

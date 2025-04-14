@@ -38,6 +38,8 @@ Example correct format:
     "country": "Country 1",
     "description": "Description of destination 1",
     "matchPercentage": 95,
+    "language": "Country 1 national language",
+    "currency": "Country 1 national currency",
     "highlights": ["Activity 1", "Activity 2", "Activity 3"],
     "imageUrl": "https://images.unsplash.com/..."
   },
@@ -46,6 +48,8 @@ Example correct format:
     "country": "Country 2",
     "description": "Description of destination 2",
     "matchPercentage": 90,
+    "language": "Country 2 national language",
+    "currency": "Country 2 national currency",
     "highlights": ["Activity 1", "Activity 2", "Activity 3"],
     "imageUrl": "https://images.unsplash.com/..."
   }

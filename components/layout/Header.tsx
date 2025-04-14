@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Calendar, User, Star, ChevronDown, Menu, X, Heart, MessageSquare, Bell } from 'lucide-react';
+import { MapPin, Menu, X, Heart, Bell } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 

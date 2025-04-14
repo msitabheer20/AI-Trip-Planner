@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react';
-import { Search, MapPin, Calendar, User, Star, ChevronDown, Menu, X, Heart, MessageSquare, Bell } from 'lucide-react';
+import { useRef } from 'react';
+import { Search, MapPin, User, Star, Heart, Bell } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
